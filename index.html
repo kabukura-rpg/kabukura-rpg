@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>株クラRPG</title>
+
+<!--
+  OGP。クローラーは JS を実行しないため、ここは静的に書く必要がある。
+  公開URLが決まったら、下の3つの絶対URLと <script> 内の SHARE_URL を同じ値に揃えること。
+  ズレたまま読み込むと、起動時にコンソールへ警告が出る（syncOgpTags）。
+-->
+<meta property="og:title" content="株クラRPG">
+<meta property="og:description" content="投資用語をタイピングして4人に挑戦しよう">
+<meta property="og:image" content="https://kabukura-rpg.github.io/assets/ogp.png">
+<meta property="og:url" content="https://kabukura-rpg.github.io/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --bg:        #1E1812;
+    --bg-dark:   #0E0A08;
+    --panel:     #2A1A12;
+    --border:    #6E4A2E;
+    --text:      #E8D4B0;
+    --typed:     #8FBF5A;
+    --untyped:   #6E4A2E;
+    --accent:    #D4A03C;
+    --hp:        #A83A2E;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg-dark);
+    color: var(--text);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #stage {
+    position: relative;
+    width: 960px;
+    height: 640px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    overflow: hidden;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+  }
+  .screen.active { display: flex; }
+
+  /* ---------- タイトル画面 ---------- */
+
+  #screen-title { justify-content: center; gap: 8px; }
+
+  #title-heading {
+    font-size: 56px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  #title-lead {
+    font-size: 18px;
+    margin: 0 0 28px;
+    opacity: 0.9;
+  }
+
+  #title-roster {
+    display: flex;
+    gap: 44px;
+    margin-bottom: 36px;
+  }
+
+  .roster-member {
+    width: 130px;
+    text-align: center;
+  }
+  /* キャラ画像の共通枠。透過PNGでも下地が抜けないよう背景を敷き、
+     正方形以外が来ても cover で枠内に収める。絵文字フォールバックには枠を付けない。 */
+  .face img {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .roster-face {
+    font-size: 56px;
+    line-height: 1.1;
+    height: 68px;
+  }
+  .roster-face img { width: 64px; height: 64px; }
+  .roster-name {
+    font-size: 15px;
+    margin-top: 6px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 14px 40px;
+    font-size: 20px;
+    font-family: inherit;
+    color: var(--bg);
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.1); }
+
+  #title-ime {
+    margin-top: 30px;
+    padding: 10px 20px;
+    font-size: 15px;
+    color: var(--accent);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
+  #title-best {
+    margin-top: 18px;
+    font-size: 14px;
+    opacity: 0.75;
+  }
+
+  /* ---------- ゲーム画面 ---------- */
+
+  #screen-game { justify-content: flex-start; }
+
+  #game-header {
+    width: 100%;
+    height: 56px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    font-size: 16px;
+  }
+  #game-progress { color: var(--accent); }
+  #game-enemy-box { display: flex; align-items: center; gap: 14px; }
+  #game-enemy-name { font-size: 18px; }
+  #game-hp { font-size: 20px; letter-spacing: 0.1em; color: var(--hp); }
+  #game-hp .lost { color: var(--untyped); }
+
+  #enemy-area {
+    height: 230px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #enemy-face { font-size: 160px; line-height: 1; }
+  #enemy-face img { width: 180px; height: 180px; }
+
+  #spell-area {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 24px;
+  }
+
+  #spell {
+    font-family: "Courier New", monospace;
+    font-size: 44px;
+    font-weight: bold;
+    letter-spacing: 0.22em;
+    white-space: pre;
+    line-height: 1.5;
+  }
+  #spell .ch { color: var(--untyped); border-bottom: 4px solid transparent; }
+  #spell .ch.done { color: var(--typed); }
+  #spell .ch.current { border-bottom-color: var(--accent); }
+  #spell .ch.space { border-bottom-color: transparent; }
+  #spell .ch.space.current { border-bottom-color: var(--accent); }
+
+  #spell-ja {
+    margin-top: 18px;
+    font-size: 20px;
+    color: var(--text);
+    opacity: 0.85;
+  }
+
+  #game-footer {
+    width: 100%;
+    height: 48px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    font-size: 15px;
+  }
+  #game-footer b {
+    font-weight: bold;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  #game-footer.urgent #hud-time { color: var(--hp); }
+
+  /* ミス減点の点滅。残り10秒の常時赤（.urgent）と見分けがつくよう、
+     色に加えて発光と拡大を足す。.urgent より詳細度を高くしてある。 */
+  #game-footer #hud-time.penalty {
+    color: var(--hp);
+    text-shadow: 0 0 10px var(--hp);
+    transform: scale(1.3);
+    display: inline-block;
+  }
+
+  /* 表情の代用フィルタ（差分画像が無いときだけ付く） */
+  .face-defeat  { filter: grayscale(0.6); transform: translateY(4px); }
+  .face-victory { filter: brightness(1.15); transform: scale(1.05); }
+
+  /* 呪文を打ち切ったときの発光。opacity と transform だけで完結させる。 */
+  #glow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 260px;
+    height: 260px;
+    margin: -130px 0 0 -130px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(143, 191, 90, 0.85) 0%, rgba(143, 191, 90, 0.35) 45%, rgba(143, 191, 90, 0) 70%);
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+  }
+  #glow.on { opacity: 1; transform: scale(1.15); }
+
+  /* 7章 IME検出の警告 */
+  #ime-warning {
+    position: absolute;
+    top: 56px;              /* ヘッダーのすぐ下 */
+    left: 0;
+    right: 0;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 16px;
+    color: var(--bg);
+    background: var(--accent);
+    z-index: 2;
+  }
+
+  /* ---------- 最後の相手（6-5） ---------- */
+
+  #screen-final {
+    justify-content: center;
+    gap: 28px;
+    background: var(--bg);
+    transition: background-color 0.5s ease;   /* 暗転 */
+  }
+  #screen-final.dark { background: var(--bg-dark); }
+
+  #final-head {
+    font-size: 30px;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+  }
+  #final-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  #final-face { font-size: 120px; line-height: 1; }
+  #final-face img { width: 140px; height: 140px; }
+  #final-name { font-size: 26px; }
+  #final-line { font-size: 22px; }
+
+  #final-head, #final-body {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #final-head.revealed, #final-body.revealed { opacity: 1; }
+
+  /* ---------- 時間切れ ---------- */
+
+  #screen-timeup { justify-content: center; gap: 26px; }
+
+  #timeup-head {
+    font-size: 30px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  #timeup-face { font-size: 110px; line-height: 1; }
+  #timeup-face img { width: 130px; height: 130px; }
+  #timeup-line { font-size: 24px; }
+  #timeup-note { font-size: 15px; opacity: 0.7; }
+
+  /* ---------- 戦闘開始（インタースティシャル） ---------- */
+
+  #screen-intro { justify-content: center; gap: 34px; }
+
+  #intro-head {
+    font-size: 30px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+  #intro-face { font-size: 120px; line-height: 1; }
+  #intro-face img { width: 140px; height: 140px; }
+  #intro-line { font-size: 24px; }
+
+  /* ---------- 撃破画面 ---------- */
+
+  #screen-defeat { justify-content: center; gap: 22px; }
+
+  #defeat-face { font-size: 120px; line-height: 1; }
+  #defeat-face img { width: 140px; height: 140px; }
+  #defeat-head {
+    font-size: 32px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  #defeat-line { font-size: 22px; }
+  #defeat-stats {
+    font-size: 18px;
+    padding: 10px 26px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  #defeat-stats b {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  #defeat-buttons { display: flex; gap: 18px; margin-top: 6px; }
+
+  .btn-x {
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+
+  /* ---------- クリア画面 ---------- */
+
+  /* 集合画像が入ると 640px に収まらないのでスクロールさせる。
+     margin:auto で中央寄せしているのは、flex の center だと
+     はみ出したときに上端が切れて読めなくなるため。 */
+  #screen-clear { overflow-y: auto; }
+  #clear-inner {
+    margin: auto;
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  [hidden] { display: none !important; }
+
+  /* 6-7. フィナーレ集合画像。縦長でも横長でも 260px を超えない。 */
+  .finale {
+    width: auto;
+    max-width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .finale.visible { opacity: 1; }
+
+  #finale-fallback {
+    text-align: center;
+    font-size: 20px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  #finale-fallback-title { color: var(--accent); }
+
+  #finale-save {
+    font-size: 14px;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #finale-save:hover { filter: brightness(1.2); }
+
+  #clear-head {
+    font-size: 40px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+
+  #clear-score {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 8px 40px;
+    margin: 0;
+    font-size: 19px;
+  }
+  #clear-score dt { opacity: 0.85; }
+  #clear-score dd {
+    margin: 0;
+    text-align: right;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rule {
+    width: 460px;
+    height: 1px;
+    background: var(--border);
+  }
+
+  #clear-roster {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: center;
+    gap: 6px 16px;
+    font-size: 16px;
+  }
+  #clear-roster .face { font-size: 24px; text-align: center; }
+  #clear-roster .face img { width: 28px; height: 28px; vertical-align: middle; }
+  #clear-roster a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+  #clear-roster a:hover { filter: brightness(1.2); }
+
+  #clear-buttons { display: flex; gap: 18px; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- タイトル画面 -->
+  <section class="screen" id="screen-title">
+    <h1 id="title-heading"></h1>
+    <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
+    <div id="title-roster"></div>
+    <button class="btn" id="btn-start">はじめる（Enter）</button>
+    <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
+    <div id="title-best">自己ベスト: ——</div>
+  </section>
+
+  <!-- ゲーム画面 -->
+  <section class="screen" id="screen-game">
+    <div id="game-header">
+      <span id="game-progress">1人目 / 4</span>
+      <span id="game-enemy-box">
+        <span id="game-enemy-name"></span>
+        <span id="game-hp"></span>
+      </span>
+    </div>
+    <div id="ime-warning" hidden>日本語入力がONになっていませんか？ 半角英数に切り替えてください</div>
+    <div id="glow"></div>
+    <div id="enemy-area"><div id="enemy-face" class="face"></div></div>
+    <div id="spell-area">
+      <div id="spell"></div>
+      <div id="spell-ja"></div>
+    </div>
+    <div id="game-footer">
+      <span>⏱ <b id="hud-time">60</b>秒</span>
+      <span>COMBO <b id="hud-combo">0</b></span>
+      <span>正確率 <b id="hud-accuracy">100</b>%</span>
+    </div>
+  </section>
+
+  <!-- 最後の相手（4番手の初回のみ） -->
+  <section class="screen" id="screen-final">
+    <div id="final-head">—— 最後の相手 ——</div>
+    <div id="final-body">
+      <div id="final-face" class="face"></div>
+      <div id="final-name"></div>
+      <div id="final-line"></div>
+    </div>
+  </section>
+
+  <!-- 時間切れ -->
+  <section class="screen" id="screen-timeup">
+    <div id="timeup-head">時間切れ</div>
+    <div id="timeup-face" class="face"></div>
+    <div id="timeup-line"></div>
+    <div id="timeup-note">もう一度この相手に挑戦します</div>
+  </section>
+
+  <!-- 戦闘開始 -->
+  <section class="screen" id="screen-intro">
+    <div id="intro-head"></div>
+    <div id="intro-face" class="face"></div>
+    <div id="intro-line"></div>
+  </section>
+
+  <!-- 撃破画面 -->
+  <section class="screen" id="screen-defeat">
+    <div id="defeat-face" class="face"></div>
+    <div id="defeat-head"></div>
+    <div id="defeat-line"></div>
+    <div id="defeat-stats"></div>
+    <div id="defeat-buttons">
+      <button class="btn btn-x" id="btn-share-defeat">Xで報告する</button>
+      <button class="btn" id="btn-next">次へ（Enter）</button>
+    </div>
+  </section>
+
+  <!-- クリア画面 -->
+  <section class="screen" id="screen-clear">
+   <div id="clear-inner">
+
+    <div id="clear-head">✨ コンプリート ✨</div>
+
+    <dl id="clear-score">
+      <dt>クリアタイム</dt><dd id="clear-time">—</dd>
+      <dt>最大コンボ</dt><dd id="clear-combo">—</dd>
+      <dt>正確率</dt><dd id="clear-accuracy">—</dd>
+    </dl>
+
+    <div id="clear-buttons">
+      <button class="btn btn-x" id="btn-share-clear">Xで結果を投稿</button>
+      <button class="btn" id="btn-replay">もう一度あそぶ（Enter）</button>
+    </div>
+
+    <div class="rule"></div>
+
+    <img id="finale-img" class="finale" src="assets/finale.png" alt="">
+    <div id="finale-fallback" hidden>
+      <div>遊んでくれてありがとう！</div>
+      <div id="finale-fallback-title"></div>
+    </div>
+    <a id="finale-save" href="assets/finale.png" download="kabukura-rpg.png" hidden>画像を保存</a>
+
+    <div id="clear-roster"></div>
+
+   </div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   差し替えブロック（ここだけを編集する。以下のロジックには触れない）
+   ========================================================================= */
+
+const TITLE = "株クラRPG";
+
+/** 公開URL。X共有と OGP で使う。確定したらここと <head> のOGPを同じ値にする。 */
+const SHARE_URL = "https://kabukura-rpg.github.io/";
+
+/** OGP の説明文。og:title は TITLE をそのまま使う。 */
+const OG_DESCRIPTION = "投資用語をタイピングして4人に挑戦しよう";
+
+const CHARACTERS = [
+  {
+    id: "micchan",
+    name: "みっちゃん",
+    handle: "@okumichi_m",
+    image: null,          // 画像が届いたら "assets/micchan.png"
+    imageDefeat: null,    // 負けたときの差分。無ければ image にフィルタをかける
+    imageVictory: null,   // 勝ったときの差分。同上
+    emoji: "🔮",
+    entryLine:   "",
+    defeatLine:  "",
+    victoryLine: "",
+  },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: null, imageVictory: null, emoji: "🌱", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "ざーこざーこ", victoryLine: "この私に勝つとは..." },
+  { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image: null, imageDefeat: null, imageVictory: null, emoji: "🍞", entryLine: "", defeatLine: "", victoryLine: "" },
+  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: null, imageDefeat: null, imageVictory: null, emoji: "👑", entryLine: "", defeatLine: "", victoryLine: "" },
+];
+
+const SPELL_TIERS = [
+  // Tier 1（4〜6文字 / 1番手）
+  [
+    { w: "INDEX",  ja: "指数" },
+    { w: "YIELD",  ja: "利回り" },
+    { w: "HOLD",   ja: "保有" },
+    { w: "RISK",   ja: "リスク" },
+    { w: "BONDS",  ja: "債券" },
+    { w: "NISA",   ja: "ニーサ" },
+    { w: "CASH",   ja: "現金" },
+    { w: "TREND",  ja: "相場の流れ" },
+    { w: "STOCK",  ja: "株式" },
+    { w: "GROWTH", ja: "成長" },
+    { w: "VALUE",  ja: "割安" },
+    { w: "IDECO",  ja: "イデコ" },
+  ],
+  // Tier 2（7〜11文字 / 2番手）
+  [
+    { w: "DIVIDEND",    ja: "配当" },
+    { w: "COMPOUND",    ja: "複利" },
+    { w: "DRAWDOWN",    ja: "最大下落率" },
+    { w: "PORTFOLIO",   ja: "資産配分" },
+    { w: "BEAR MARKET", ja: "下落相場" },
+    { w: "BULL MARKET", ja: "上昇相場" },
+    { w: "VOLATILITY",  ja: "変動率" },
+    { w: "LONG TERM",   ja: "長期" },
+    { w: "BLUE CHIP",   ja: "優良株" },
+    { w: "RECESSION",   ja: "景気後退" },
+    { w: "INFLATION",   ja: "物価上昇" },
+    { w: "INDEX FUND",  ja: "指数連動投信" },
+  ],
+  // Tier 3（12〜16文字 / 3番手）
+  [
+    { w: "TOTAL RETURN",     ja: "総合収益" },
+    { w: "CAPITAL GAINS",    ja: "売却益" },
+    { w: "MARKET TIMING",    ja: "売買タイミング" },
+    { w: "EXPENSE RATIO",    ja: "信託報酬" },
+    { w: "PROFIT TAKING",    ja: "利益確定" },
+    { w: "SHARPE RATIO",     ja: "シャープレシオ" },
+    { w: "TAX DEFERRAL",     ja: "課税繰延" },
+    { w: "RISK TOLERANCE",   ja: "リスク許容度" },
+    { w: "EMERGENCY FUND",   ja: "生活防衛資金" },
+    { w: "ASSET ALLOCATION", ja: "資産配分" },
+    { w: "EMERGING MARKETS", ja: "新興国市場" },
+  ],
+  // Tier 4（15〜20文字 / 4番手）
+  [
+    { w: "DIVERSIFICATION",     ja: "分散投資" },
+    { w: "COMPOUND INTEREST",   ja: "複利効果" },
+    { w: "ALL COUNTRY INDEX",   ja: "全世界株式" },
+    { w: "PASSIVE INVESTING",   ja: "パッシブ運用" },
+    { w: "LONG TERM HOLDING",   ja: "長期保有" },
+    { w: "FINANCIAL FREEDOM",   ja: "経済的自由" },
+    { w: "DOLLAR COST AVERAGE", ja: "ドルコスト平均法" },
+    { w: "CAPITAL PRESERVATION", ja: "資産保全" },
+  ],
+];
+
+/* =========================================================================
+   ここから下がロジック
+   ========================================================================= */
+
+const FALLBACK = {
+  entryLine:   "いくよ！",
+  defeatLine:  "またやろうね",
+  victoryLine: "もういっかい挑戦してね",
+};
+
+/** セリフのフォールバック解決 */
+function lineOf(chara, key) {
+  const v = chara[key];
+  return (typeof v === "string" && v.trim() !== "") ? v : FALLBACK[key];
+}
+
+/** Fisher-Yates */
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * 表情の差分。差分画像があればそれを、無ければ通常画像か絵文字に
+ * CSSフィルタをかけて代用する。
+ */
+const FACE_VARIANTS = {
+  normal:  { key: "image",        filter: "" },
+  defeat:  { key: "imageDefeat",  filter: "face-defeat"  },   // プレイヤーが勝った相手
+  victory: { key: "imageVictory", filter: "face-victory" },   // プレイヤーに勝った相手
+};
+
+/**
+ * 画像 or 絵文字を要素に流し込む。フォールバックは3段。
+ *   1. 該当する差分画像
+ *   2. 通常画像 + フィルタ
+ *   3. 絵文字 + フィルタ
+ * 画像は onerror で1段ずつ下に落ちる。
+ */
+function renderFace(el, chara, emojiSize, variant) {
+  const v = FACE_VARIANTS[variant] || FACE_VARIANTS.normal;
+
+  el.textContent = "";
+  el.style.fontSize = emojiSize;
+  el.classList.remove("face-defeat", "face-victory");
+
+  const variantImage = chara[v.key];
+  const src = variantImage || chara.image;
+
+  // 差分画像そのものを出すときだけフィルタ不要。それ以外は代用なのでフィルタをかける。
+  if (!variantImage && v.filter) el.classList.add(v.filter);
+
+  if (!src) {
+    el.textContent = chara.emoji;
+    return;
+  }
+
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = chara.name;
+  img.onerror = () => {
+    if (variantImage && chara.image && chara.image !== variantImage) {
+      // 差分画像が読めなかった → 通常画像 + フィルタへ落とす
+      if (v.filter) el.classList.add(v.filter);
+      img.onerror = () => { el.textContent = chara.emoji; };
+      img.src = chara.image;
+      return;
+    }
+    if (v.filter) el.classList.add(v.filter);
+    el.textContent = chara.emoji;
+  };
+  el.appendChild(img);
+}
+
+/* ---------- 画面遷移 ---------- */
+
+const SCREENS = {
+  title:  document.getElementById("screen-title"),
+  intro:  document.getElementById("screen-intro"),
+  final:  document.getElementById("screen-final"),
+  game:   document.getElementById("screen-game"),
+  timeup: document.getElementById("screen-timeup"),
+  defeat: document.getElementById("screen-defeat"),
+  clear:  document.getElementById("screen-clear"),
+};
+
+let currentScreen = "title";
+
+function showScreen(name) {
+  Object.keys(SCREENS).forEach(k => {
+    SCREENS[k].classList.toggle("active", k === name);
+  });
+  currentScreen = name;
+}
+
+/* ---------- 難易度テーブル ---------- */
+
+/** 出題数 ＝ 相手のHP */
+const STAGE_QUESTIONS = [5, 6, 6, 7];
+
+/** 制限時間。4番手だけ長いのは、長文で時間切れが頻発するのを避けるため。 */
+const STAGE_TIME_MS = [60000, 60000, 60000, 70000];
+
+const INTRO_MS  = 1500;   // 戦闘開始演出。この間タイマーは止まっている
+const TIMEUP_MS = 2200;   // 時間切れの表示時間
+
+const GLOW_MS          = 150;    // 撃ち込んだときの発光
+const IME_WATCH_MS     = 5000;   // この時間ぜんぶ空振りなら IME 警告
+const MISS_PENALTY_MS  = 3000;   // ミス1回あたりの残り時間の減点
+const PENALTY_FLASH_MS = 200;    // 減点時の点滅
+
+/** 6-5. 最後の相手。暗転0.5秒 → 見出し1秒 → 相手1.5秒 の計3秒 */
+const FINAL_DARK_MS  = 500;
+const FINAL_HEAD_MS  = 1000;
+const FINAL_ENTRY_MS = 1500;
+
+/* ---------- 状態 ---------- */
+
+const state = {
+  order: [],           // 登場順。ゲーム開始時に1回だけ抽選する
+  stageIndex: 0,       // 何番手か（0-3）
+  hp: 0,               // 残りの出題数
+  maxHp: 0,
+  queue: [],           // このステージの出題キュー（重複なし）
+  spell: null,         // { w, ja }
+  pos: 0,              // 次に打つ文字の位置
+  introTimer: null,
+  timeupTimer: null,
+  finalTimers: [],
+  glowTimer: null,
+  imeTimer: null,
+  penaltyTimer: null,
+  penaltyMs: 0,        // このステージで積んだ減点。経過時間そのものは増やさない
+  // タイマー
+  limitMs: 0,          // このステージの制限時間
+  segmentStart: null,  // 計測中の区間の開始時刻。止まっているときは null
+  tickTimer: null,
+  totalMs: 0,          // 4戦の合計経過時間（時間切れリトライ分も加算される）
+  stageMs: 0,          // いま戦っている相手だけの経過時間
+  // 集計（全編通し）
+  correct: 0,
+  miss: 0,
+  combo: 0,
+  maxCombo: 0,
+  // 集計（いま戦っている相手だけ）
+  stageCorrect: 0,
+  stageMiss: 0,
+};
+
+/* ---------- タイトル画面 ---------- */
+
+document.getElementById("title-heading").textContent = TITLE;
+document.title = TITLE;
+
+function buildTitleRoster() {
+  const box = document.getElementById("title-roster");
+  box.textContent = "";
+  CHARACTERS.forEach(c => {
+    const wrap = document.createElement("div");
+    wrap.className = "roster-member";
+    const face = document.createElement("div");
+    face.className = "face roster-face";
+    renderFace(face, c, "56px");
+    const name = document.createElement("div");
+    name.className = "roster-name";
+    name.textContent = c.name;
+    wrap.append(face, name);
+    box.appendChild(wrap);
+  });
+}
+
+document.getElementById("btn-start").addEventListener("click", startGame);
+document.getElementById("btn-replay").addEventListener("click", startGame);
+
+document.getElementById("btn-share-defeat").addEventListener("click", (e) => {
+  e.currentTarget.blur();   // Enter が共有ボタンの再クリックにならないように
+  shareDefeat();
+});
+document.getElementById("btn-next").addEventListener("click", (e) => {
+  e.currentTarget.blur();
+  advanceFromDefeat();
+});
+document.getElementById("btn-share-clear").addEventListener("click", (e) => {
+  e.currentTarget.blur();
+  shareClear();
+});
+
+/* ---------- ゲーム ---------- */
+
+function startGame() {
+  stopTimer();
+  clearTimeout(state.introTimer);
+  clearTimeout(state.timeupTimer);
+  clearFinalTimers();
+
+  // 登場順の抽選はここだけ。リトライでも時間切れでも再抽選しない。
+  state.order = shuffled(CHARACTERS);
+  state.correct = 0;
+  state.miss = 0;
+  state.combo = 0;
+  state.maxCombo = 0;
+  state.totalMs = 0;
+  armImeWatch();       // タイマーとは独立して走らせる
+  enterStage(0);
+}
+
+/** ステージ（＝1人ぶんの戦闘）を開始する。戦闘開始演出を挟む。 */
+function enterStage(index) {
+  state.stageIndex = index;
+  const chara = state.order[index];
+
+  // 相手ごとの集計。時間切れリトライではリセットしないので、
+  // 撃破画面にはその相手に費やした合計が出る。
+  state.stageMs = 0;
+  state.stageCorrect = 0;
+  state.stageMiss = 0;
+
+  document.getElementById("game-progress").textContent = (index + 1) + "人目 / " + state.order.length;
+  document.getElementById("game-enemy-name").textContent = chara.name;
+  renderFace(document.getElementById("enemy-face"), chara, "160px");
+
+  setupBattle(index);
+
+  // 3人撃破済みで4人目に入るときだけ「最後の相手」演出に差し替える。
+  // 時間切れリトライは enterStage を通らないので、2回目以降は演出が入らない。
+  if (index === state.order.length - 1) {
+    showFinalIntro(chara);
+    return;
+  }
+
+  showIntro(index, chara);
+}
+
+/** 6-2. 戦闘開始（1.5秒）。演出中はタイマーを動かさない。 */
+function showIntro(index, chara) {
+  document.getElementById("intro-head").textContent = (index + 1) + "人目 —— " + chara.name;
+  renderFace(document.getElementById("intro-face"), chara, "120px");
+  document.getElementById("intro-line").textContent = "「" + lineOf(chara, "entryLine") + "」";
+
+  showScreen("intro");
+  clearTimeout(state.introTimer);
+  state.introTimer = setTimeout(startBattle, INTRO_MS);
+}
+
+/** 6-5. 最後の相手。暗転 → 見出し → 相手 の3段構成、合計3秒。 */
+function showFinalIntro(chara) {
+  const screen = document.getElementById("screen-final");
+  const head   = document.getElementById("final-head");
+  const body   = document.getElementById("final-body");
+
+  renderFace(document.getElementById("final-face"), chara, "120px");
+  document.getElementById("final-name").textContent = chara.name;
+  document.getElementById("final-line").textContent = "「" + lineOf(chara, "entryLine") + "」";
+
+  screen.classList.remove("dark");
+  head.classList.remove("revealed");
+  body.classList.remove("revealed");
+
+  showScreen("final");
+  clearFinalTimers();
+
+  // 一度レイアウトを確定させてからクラスを付けることで transition が走る（＝0.5秒かけて暗転）。
+  // requestAnimationFrame はタブが非表示のとき発火しないので使わない。
+  void screen.offsetWidth;
+  screen.classList.add("dark");
+
+  state.finalTimers = [
+    setTimeout(() => head.classList.add("revealed"), FINAL_DARK_MS),
+    setTimeout(() => body.classList.add("revealed"), FINAL_DARK_MS + FINAL_HEAD_MS),
+    setTimeout(startBattle,                          FINAL_DARK_MS + FINAL_HEAD_MS + FINAL_ENTRY_MS),
+  ];
+}
+
+function clearFinalTimers() {
+  state.finalTimers.forEach(clearTimeout);
+  state.finalTimers = [];
+}
+
+/** HP・出題キュー・制限時間を初期状態に戻す（時間切れリトライでも呼ぶ） */
+function setupBattle(index) {
+  state.maxHp = STAGE_QUESTIONS[index];
+  state.hp = state.maxHp;
+  state.limitMs = STAGE_TIME_MS[index];
+  state.penaltyMs = 0;      // 減点は挑戦ごとにリセットする
+
+  // 何番手かで Tier が決まる。誰と戦うかは難易度に影響しない。
+  // 先にシャッフルして前から取り出すことで、1戦の中で重複出題しない。
+  state.queue = shuffled(SPELL_TIERS[index]);
+
+  renderHp();
+  nextSpell();
+  renderFooter(state.limitMs);
+}
+
+/** 演出を抜けて戦闘画面へ。ここでタイマーが動き出す。 */
+function startBattle() {
+  showScreen("game");
+  startTimer();
+}
+
+function renderHp() {
+  const box = document.getElementById("game-hp");
+  box.textContent = "";
+  for (let i = 0; i < state.maxHp; i++) {
+    const heart = document.createElement("span");
+    if (i >= state.hp) heart.className = "lost";
+    heart.textContent = "♥";
+    box.appendChild(heart);
+  }
+}
+
+function nextSpell() {
+  state.spell = state.queue.shift();
+  state.pos = 0;
+  renderSpell();
+}
+
+/** 呪文を1つ打ち切った */
+function onSpellCompleted() {
+  flashGlow();
+  state.hp--;
+  renderHp();
+
+  if (state.hp > 0) {
+    nextSpell();
+    return;
+  }
+
+  // 撃破。タイマーを止めてから撃破画面へ。この画面の滞在時間は計測されない。
+  stopTimer();
+  showDefeat();
+}
+
+/* ---------- 撃破画面 ---------- */
+
+/** 6-4. Enter 待ち。X共有を押す時間が必要なので自動では進めない。 */
+function showDefeat() {
+  const chara = state.order[state.stageIndex];
+
+  renderFace(document.getElementById("defeat-face"), chara, "120px", "defeat");
+  document.getElementById("defeat-head").textContent = chara.name + " に勝利！";
+  document.getElementById("defeat-line").textContent = "「" + lineOf(chara, "defeatLine") + "」";
+
+  const stats = document.getElementById("defeat-stats");
+  stats.textContent = "";
+  stats.append("⏱ ");
+  stats.appendChild(bold(stageSeconds()));
+  stats.append("秒 / 正確率 ");
+  stats.appendChild(bold(stageAccuracyPercent()));
+  stats.append("%");
+
+  showScreen("defeat");
+}
+
+function bold(value) {
+  const b = document.createElement("b");
+  b.textContent = value;
+  return b;
+}
+
+/** その相手に費やした秒数（時間切れリトライぶんを含む） */
+function stageSeconds() {
+  return Math.max(1, Math.round(state.stageMs / 1000));
+}
+
+/** その相手だけの正確率 */
+function stageAccuracyPercent() {
+  const total = state.stageCorrect + state.stageMiss;
+  if (total === 0) return 100;
+  return Math.round((state.stageCorrect / total) * 100);
+}
+
+/** 撃破画面の「次へ」。4人目の撃破後もこの画面を挟んでからクリアへ。 */
+function advanceFromDefeat() {
+  const next = state.stageIndex + 1;
+  if (next < state.order.length) {
+    enterStage(next);
+  } else {
+    showClear();
+  }
+}
+
+/* ---------- クリア画面 ---------- */
+
+/** 「3分12秒」形式 */
+function formatTime(ms) {
+  const total = Math.round(ms / 1000);
+  return Math.floor(total / 60) + "分" + String(total % 60).padStart(2, "0") + "秒";
+}
+
+function showClear() {
+  document.getElementById("clear-time").textContent     = formatTime(state.totalMs);
+  document.getElementById("clear-combo").textContent    = state.maxCombo;
+  document.getElementById("clear-accuracy").textContent = accuracyPercent() + "%";
+
+  saveBest();          // 自己ベストの更新はクリア時のみ
+  renderBest();
+  showScreen("clear");
+}
+
+/** 4人全員のXリンク。登場順ではなく CHARACTERS の定義順で固定する。 */
+function buildClearRoster() {
+  const box = document.getElementById("clear-roster");
+  box.textContent = "";
+  CHARACTERS.forEach(c => {
+    const face = document.createElement("span");
+    face.className = "face";
+    renderFace(face, c, "24px");
+
+    const name = document.createElement("span");
+    name.textContent = c.name;
+
+    const link = document.createElement("a");
+    link.href = "https://x.com/" + c.handle.replace(/^@/, "");
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = c.handle;
+
+    box.append(face, name, link);
+  });
+}
+
+/** 6-7. 集合画像。未提出（読み込み失敗）ならテキストだけで成立させる。 */
+(function setupFinale() {
+  const img      = document.getElementById("finale-img");
+  const fallback = document.getElementById("finale-fallback");
+  const save     = document.getElementById("finale-save");
+
+  img.alt = TITLE + " 一同";
+  document.getElementById("finale-fallback-title").textContent = TITLE + " 一同より";
+
+  img.addEventListener("load", () => {
+    img.hidden = false;
+    img.classList.add("visible");   // 0.6秒でフェードイン
+    fallback.hidden = true;
+    save.hidden = false;
+  });
+
+  img.addEventListener("error", () => {
+    img.hidden = true;              // 画像も保存リンクも消し、テキストだけ残す
+    save.hidden = true;
+    fallback.hidden = false;
+  });
+})();
+
+function shareClear() {
+  openShare(
+    "「" + TITLE + "」コンプリート！\n" +
+    "⏱ " + formatTime(state.totalMs) +
+    " / 最大コンボ " + state.maxCombo +
+    " / 正確率 " + accuracyPercent() + "%\n\n" +
+    "投資用語をタイピングして4人に挑戦するゲームです"
+  );
+}
+
+/* ---------- 自己ベスト（localStorage） ---------- */
+
+const BEST_KEY = "kabukura-rpg-best";
+
+function loadBest() {
+  try {
+    const raw = localStorage.getItem(BEST_KEY);
+    if (!raw) return null;
+    const b = JSON.parse(raw);
+    if (!b || typeof b !== "object") return null;
+    return b;
+  } catch (e) {
+    return null;   // localStorage が使えない環境でもゲームは動かす
+  }
+}
+
+/** 項目ごとに独立して良い方を残す */
+function saveBest() {
+  const prev = loadBest() || {};
+  const time     = Math.round(state.totalMs);
+  const accuracy = accuracyPercent();
+  const combo    = state.maxCombo;
+
+  const next = {
+    bestTimeMs:   (typeof prev.bestTimeMs   === "number") ? Math.min(prev.bestTimeMs, time)      : time,
+    bestAccuracy: (typeof prev.bestAccuracy === "number") ? Math.max(prev.bestAccuracy, accuracy): accuracy,
+    bestCombo:    (typeof prev.bestCombo    === "number") ? Math.max(prev.bestCombo, combo)      : combo,
+  };
+
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(next));
+  } catch (e) {
+    /* 保存できなくても進行には影響させない */
+  }
+}
+
+/** タイトル画面の自己ベスト欄。データが無ければ非表示。 */
+function renderBest() {
+  const el = document.getElementById("title-best");
+  const b = loadBest();
+  if (!b || typeof b.bestTimeMs !== "number") {
+    el.style.display = "none";
+    return;
+  }
+  el.style.display = "";
+  el.textContent = "自己ベスト: " + formatTime(b.bestTimeMs) + " / 正確率 " + b.bestAccuracy + "%";
+}
+
+/* ---------- X共有 ---------- */
+
+function openShare(text) {
+  const url = "https://twitter.com/intent/tweet"
+            + "?text=" + encodeURIComponent(text)
+            + "&url="  + encodeURIComponent(SHARE_URL);
+  window.open(url, "_blank", "noopener");
+}
+
+function shareDefeat() {
+  const chara = state.order[state.stageIndex];
+  openShare(
+    "「" + TITLE + "」\n" +
+    chara.name + " に勝利！\n" +
+    "⏱ " + stageSeconds() + "秒 / 正確率 " + stageAccuracyPercent() + "%"
+  );
+}
+
+/* ---------- 発光エフェクト ---------- */
+
+/** 画面中央に円形の光を150ms。requestAnimationFrame は使わない。 */
+function flashGlow() {
+  const glow = document.getElementById("glow");
+  glow.classList.remove("on");
+  void glow.offsetWidth;          // 連続で撃ち込んでも毎回出るようリセットする
+  glow.classList.add("on");
+
+  clearTimeout(state.glowTimer);
+  state.glowTimer = setTimeout(() => glow.classList.remove("on"), GLOW_MS);
+}
+
+/* ---------- IME検出 ---------- */
+
+/** 有効な打鍵が1度でもあったか。ゲームをやり直しても引き継ぐ。 */
+let hadValidKey = false;
+
+/** タイマーとは独立。ゲーム開始から5秒、有効打鍵ゼロなら警告を出す。 */
+function armImeWatch() {
+  clearTimeout(state.imeTimer);
+  state.imeTimer = null;
+  if (hadValidKey) return;
+  state.imeTimer = setTimeout(() => {
+    if (!hadValidKey) document.getElementById("ime-warning").hidden = false;
+  }, IME_WATCH_MS);
+}
+
+/** 有効打鍵を1つ受け取った */
+function noteValidKey() {
+  if (hadValidKey) return;
+  hadValidKey = true;
+  clearTimeout(state.imeTimer);
+  state.imeTimer = null;
+  document.getElementById("ime-warning").hidden = true;
+}
+
+/* ---------- タイマー ---------- */
+
+function now() { return performance.now(); }
+
+function startTimer() {
+  clearInterval(state.tickTimer);
+  state.segmentStart = now();
+  state.tickTimer = setInterval(tick, 100);
+  renderFooter();
+}
+
+/** 計測を止め、経過ぶんを合計時間に積む。リトライぶんもここで加算される。 */
+function stopTimer() {
+  if (state.segmentStart !== null) {
+    const elapsed = now() - state.segmentStart;
+    state.totalMs += elapsed;
+    state.stageMs += elapsed;
+    state.segmentStart = null;
+  }
+  clearInterval(state.tickTimer);
+  state.tickTimer = null;
+}
+
+function remainingMs() {
+  const spent = (state.segmentStart === null) ? 0 : now() - state.segmentStart;   // 演出中は満タン表示
+  return Math.max(0, state.limitMs - spent - state.penaltyMs);
+}
+
+/** ミス1回につき残り時間を減らす。カーソルは進めない（時間にだけ効かせる）。 */
+function applyMissPenalty() {
+  if (state.segmentStart === null) return;   // 計測していないときは減点しない
+  state.penaltyMs += MISS_PENALTY_MS;
+  flashPenalty();
+
+  if (remainingMs() <= 0) {
+    renderFooter(0);
+    onTimeUp();          // 0になったら通常の時間切れ処理に合流する
+  }
+}
+
+/** 残り秒数を200ms点滅させる。requestAnimationFrame は使わない。 */
+function flashPenalty() {
+  const el = document.getElementById("hud-time");
+  el.classList.remove("penalty");
+  void el.offsetWidth;
+  el.classList.add("penalty");
+
+  clearTimeout(state.penaltyTimer);
+  state.penaltyTimer = setTimeout(() => el.classList.remove("penalty"), PENALTY_FLASH_MS);
+}
+
+function tick() {
+  const rest = remainingMs();
+  if (rest <= 0) {
+    renderFooter(0);
+    onTimeUp();
+    return;
+  }
+  renderFooter(rest);
+}
+
+/** 4章「時間切れの扱い」。そのステージのみリセットして静かに再開する。 */
+function onTimeUp() {
+  stopTimer();
+
+  const chara = state.order[state.stageIndex];
+  document.getElementById("timeup-face").textContent = "";
+  renderFace(document.getElementById("timeup-face"), chara, "110px", "victory");
+  document.getElementById("timeup-line").textContent = "「" + lineOf(chara, "victoryLine") + "」";
+
+  showScreen("timeup");
+  clearTimeout(state.timeupTimer);
+  state.timeupTimer = setTimeout(() => {
+    // 進行状況（すでに倒した相手）も登場順もそのまま。この相手だけやり直す。
+    setupBattle(state.stageIndex);
+    startBattle();
+  }, TIMEUP_MS);
+}
+
+/* ---------- フッター（HUD） ---------- */
+
+function accuracyPercent() {
+  const total = state.correct + state.miss;
+  if (total === 0) return 100;             // 1打も入力していないときに NaN を出さない
+  return Math.round((state.correct / total) * 100);
+}
+
+function renderFooter(restMs) {
+  const rest = (restMs === undefined) ? remainingMs() : restMs;
+  const sec = Math.max(0, Math.ceil(rest / 1000));
+  document.getElementById("hud-time").textContent = sec;
+  document.getElementById("hud-combo").textContent = state.combo;
+  document.getElementById("hud-accuracy").textContent = accuracyPercent();
+  document.getElementById("game-footer").classList.toggle("urgent", sec <= 10);
+}
+
+function renderSpell() {
+  const box = document.getElementById("spell");
+  box.textContent = "";
+  const w = state.spell.w;
+  for (let i = 0; i < w.length; i++) {
+    const span = document.createElement("span");
+    span.className = "ch";
+    if (w[i] === " ") span.classList.add("space");
+    if (i < state.pos) span.classList.add("done");
+    if (i === state.pos) span.classList.add("current");
+    span.textContent = w[i];
+    box.appendChild(span);
+  }
+  document.getElementById("spell-ja").textContent = "（" + state.spell.ja + "）";
+}
+
+/** 1打鍵の判定 */
+function handleTyping(key) {
+  noteValidKey();   // 正誤に関わらず「打てている」証拠になる
+  const expected = state.spell.w[state.pos];
+  if (key.toLowerCase() === expected.toLowerCase()) {
+    state.pos++;
+    state.correct++;
+    state.stageCorrect++;
+    state.combo++;
+    if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+    if (state.pos >= state.spell.w.length) {
+      onSpellCompleted();
+    } else {
+      renderSpell();
+    }
+  } else {
+    state.combo = 0;
+    state.miss++;
+    state.stageMiss++;
+    applyMissPenalty();
+  }
+  if (currentScreen === "game") renderFooter();
+}
+
+/* ---------- キー入力 ---------- */
+
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  if (currentScreen === "title") {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      startGame();
+    }
+    return;
+  }
+
+  if (currentScreen === "defeat") {
+    // 打鍵は判定対象外。Enter だけを受け付ける。
+    if (e.key === "Enter") {
+      e.preventDefault();
+      advanceFromDefeat();
+    }
+    return;
+  }
+
+  if (currentScreen === "clear") {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      startGame();          // 新しいゲームなので登場順は改めて抽選される
+    }
+    return;
+  }
+
+  if (currentScreen === "game") {
+    // 修飾キー単体・矢印・Tab・Esc・F キー・IME の Process はここで弾かれる
+    if (e.key.length !== 1) return;
+    if (e.key === " ") e.preventDefault();   // スクロール抑止
+    handleTyping(e.key);
+  }
+
+  // intro 中の打鍵は判定しない（ミスにもしない）
+});
+
+/* ---------- OGP ---------- */
+
+/**
+ * <head> のOGPを定数に合わせる。
+ * クローラーは JS を実行しないので静的タグが本体で、これは
+ * 「定数と静的タグがズレていないか」を開発時に検出するための同期処理。
+ */
+function syncOgpTags() {
+  const base = SHARE_URL.endsWith("/") ? SHARE_URL : SHARE_URL + "/";
+  const wanted = {
+    'meta[property="og:title"]':       TITLE,
+    'meta[property="og:description"]': OG_DESCRIPTION,
+    'meta[property="og:image"]':       base + "assets/ogp.png",
+    'meta[property="og:url"]':         base,
+  };
+
+  Object.keys(wanted).forEach(selector => {
+    const tag = document.querySelector(selector);
+    if (!tag) return;
+    if (tag.getAttribute("content") !== wanted[selector]) {
+      console.warn("[OGP] 静的タグが定数とズレています。<head> を修正してください: "
+                   + selector + " = " + tag.getAttribute("content")
+                   + " / 定数 = " + wanted[selector]);
+      tag.setAttribute("content", wanted[selector]);
+    }
+  });
+}
+
+/* ---------- 初期化 ---------- */
+
+syncOgpTags();
+buildTitleRoster();
+buildClearRoster();
+renderBest();
+showScreen("title");
+</script>
+
+</body>
+</html>
