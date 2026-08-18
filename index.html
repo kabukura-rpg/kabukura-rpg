@@ -12,7 +12,7 @@
 -->
 <meta property="og:title" content="株クラRPG">
 <meta property="og:description" content="投資用語をタイピングして4人に挑戦しよう">
-<meta property="og:image" content="https://kabukura-rpg.github.io/assets/ogp.png">
+<meta property="og:image" content="https://kabukura-rpg.github.io/assets/ogp.jpg">
 <meta property="og:url" content="https://kabukura-rpg.github.io/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
@@ -141,6 +141,13 @@
     opacity: 0.75;
   }
 
+  #title-titles {
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--accent);
+    opacity: 0.9;
+  }
+
   /* ---------- ゲーム画面 ---------- */
 
   #screen-game { justify-content: flex-start; }
@@ -192,7 +199,13 @@
   #spell .ch { color: var(--untyped); border-bottom: 4px solid transparent; }
   #spell .ch.done { color: var(--typed); }
   #spell .ch.current { border-bottom-color: var(--accent); }
-  #spell .ch.space { border-bottom-color: transparent; }
+  /* スペースは記号に置き換えず、薄い下地と下線だけで位置を示す。
+     下線は currentColor なので、打鍵済みなら緑・未入力なら暗茶になる。 */
+  #spell .ch.space {
+    background: rgba(232, 212, 176, 0.12);
+    border-radius: 3px 3px 0 0;
+    border-bottom-color: currentColor;
+  }
   #spell .ch.space.current { border-bottom-color: var(--accent); }
 
   #spell-ja {
@@ -228,6 +241,30 @@
     transform: scale(1.3);
     display: inline-block;
   }
+
+  /* 「最初から始める」。クリック専用（tabindex="-1" でキーボード操作の対象外）。
+     戦闘画面では右下の隅に小さく置き、呪文表示の邪魔をしない。 */
+  .btn-restart {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    opacity: 0.55;
+  }
+  .btn-restart:hover { opacity: 1; }
+
+  #btn-restart-game {
+    position: absolute;
+    right: 12px;
+    bottom: 58px;      /* フッターのすぐ上 */
+    z-index: 3;
+  }
+
+  #btn-restart-defeat { margin-top: 4px; }
 
   /* 表情の代用フィルタ（差分画像が無いときだけ付く） */
   .face-defeat  { filter: grayscale(0.6); transform: translateY(4px); }
@@ -405,6 +442,15 @@
     letter-spacing: 0.06em;
   }
 
+  #clear-title {
+    font-size: 24px;
+    color: var(--text);
+    padding: 6px 22px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+
   #clear-score {
     display: grid;
     grid-template-columns: auto auto;
@@ -457,6 +503,7 @@
     <button class="btn" id="btn-start">はじめる（Enter）</button>
     <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
     <div id="title-best">自己ベスト: ——</div>
+    <div id="title-titles">称号 0/16</div>
   </section>
 
   <!-- ゲーム画面 -->
@@ -475,6 +522,7 @@
       <div id="spell"></div>
       <div id="spell-ja"></div>
     </div>
+    <button class="btn-restart" id="btn-restart-game" type="button" tabindex="-1">最初から始める</button>
     <div id="game-footer">
       <span>⏱ <b id="hud-time">60</b>秒</span>
       <span>COMBO <b id="hud-combo">0</b></span>
@@ -517,6 +565,7 @@
       <button class="btn btn-x" id="btn-share-defeat">Xで報告する</button>
       <button class="btn" id="btn-next">次へ（Enter）</button>
     </div>
+    <button class="btn-restart" id="btn-restart-defeat" type="button" tabindex="-1">最初から始める</button>
   </section>
 
   <!-- クリア画面 -->
@@ -524,6 +573,7 @@
    <div id="clear-inner">
 
     <div id="clear-head">✨ コンプリート ✨</div>
+    <div id="clear-title"></div>
 
     <dl id="clear-score">
       <dt>クリアタイム</dt><dd id="clear-time">—</dd>
@@ -534,16 +584,17 @@
     <div id="clear-buttons">
       <button class="btn btn-x" id="btn-share-clear">Xで結果を投稿</button>
       <button class="btn" id="btn-replay">もう一度あそぶ（Enter）</button>
+      <button class="btn btn-x" id="btn-restart-clear" type="button" tabindex="-1">タイトルへ戻る</button>
     </div>
 
     <div class="rule"></div>
 
-    <img id="finale-img" class="finale" src="assets/finale.png" alt="">
+    <img id="finale-img" class="finale" src="assets/finale.jpg" alt="">
     <div id="finale-fallback" hidden>
       <div>遊んでくれてありがとう！</div>
       <div id="finale-fallback-title"></div>
     </div>
-    <a id="finale-save" href="assets/finale.png" download="kabukura-rpg.png" hidden>画像を保存</a>
+    <a id="finale-save" href="assets/finale.jpg" download="kabukura-rpg.jpg" hidden>画像を保存</a>
 
     <div id="clear-roster"></div>
 
@@ -580,7 +631,7 @@ const CHARACTERS = [
     defeatLine:  "",
     victoryLine: "",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: null, imageVictory: null, emoji: "🌱", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "ざーこざーこ", victoryLine: "この私に勝つとは..." },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "この私に勝つとは...", victoryLine: "強さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image: null, imageDefeat: null, imageVictory: null, emoji: "🍞", entryLine: "", defeatLine: "", victoryLine: "" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: null, imageDefeat: null, imageVictory: null, emoji: "👑", entryLine: "", defeatLine: "", victoryLine: "" },
 ];
@@ -640,7 +691,37 @@ const SPELL_TIERS = [
     { w: "FINANCIAL FREEDOM",   ja: "経済的自由" },
     { w: "DOLLAR COST AVERAGE", ja: "ドルコスト平均法" },
     { w: "CAPITAL PRESERVATION", ja: "資産保全" },
+    { w: "RISK MANAGEMENT",      ja: "リスク管理" },
+    { w: "PORTFOLIO BALANCE",    ja: "資産配分の調整" },
+    { w: "MARKET CORRECTION",    ja: "相場の調整局面" },
+    { w: "INVESTMENT HORIZON",   ja: "投資期間" },
+    { w: "INDEX FUND INVESTING", ja: "インデックス投資" },
   ],
+];
+
+/* 称号（本体）。クリアタイムが maxMs 未満のうち、いちばん条件の厳しいものが付く。
+   b01 は maxMs: null ＝ どれにも当てはまらないとき（3分以上）の受け皿。 */
+const TITLE_BASE = [
+  { id: "b01", name: "見習い投資家",           maxMs: null },      // 3分以上
+  { id: "b02", name: "積立の徒",               maxMs: 180000 },
+  { id: "b03", name: "分散の使い手",           maxMs: 150000 },
+  { id: "b04", name: "複利の探究者",           maxMs: 120000 },
+  { id: "b05", name: "相場を読む者",           maxMs: 100000 },
+  { id: "b06", name: "詠唱者",                 maxMs: 80000 },
+  { id: "b07", name: "インデックスの魔術師",   maxMs: 60000 },
+  { id: "b08", name: "市場の支配者",           maxMs: 50000 },
+  { id: "b09", name: "大賢者",                 maxMs: 40000 },
+  { id: "b10", name: "理外の存在",             maxMs: 30000 },
+];
+
+/* 称号（冠）。条件を満たしたものはすべて記録し、表示は priority 最小の1つだけ。 */
+const TITLE_CROWN = [
+  { id: "c01", name: "✨ 邂逅の",         priority: 1 },
+  { id: "c02", name: "🎯 一片の狂いなき", priority: 2 },
+  { id: "c03", name: "⚡ 電光石火の",     priority: 3 },
+  { id: "c04", name: "🔥 無傷の",         priority: 4 },
+  { id: "c05", name: "👑 常勝の",         priority: 5 },
+  { id: "c06", name: "🌱 芽吹きの",       priority: 6 },
 ];
 
 /* =========================================================================
@@ -659,11 +740,16 @@ function lineOf(chara, key) {
   return (typeof v === "string" && v.trim() !== "") ? v : FALLBACK[key];
 }
 
+/** このゲームの乱数はすべてここを通す（登場順・出題順・冠の抽選） */
+function rng() {
+  return Math.random();
+}
+
 /** Fisher-Yates */
 function shuffled(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -794,6 +880,7 @@ const state = {
   // 集計（いま戦っている相手だけ）
   stageCorrect: 0,
   stageMiss: 0,
+  timeoutCount: 0,     // このプレイで時間切れになった回数（冠 c04 の判定に使う）
 };
 
 /* ---------- タイトル画面 ---------- */
@@ -829,12 +916,64 @@ document.getElementById("btn-next").addEventListener("click", (e) => {
   e.currentTarget.blur();
   advanceFromDefeat();
 });
+[["btn-restart-game"], ["btn-restart-defeat"], ["btn-restart-clear"]].forEach(([id]) => {
+  const btn = document.getElementById(id);
+  btn.addEventListener("click", (e) => {
+    e.currentTarget.blur();
+    restartFromTitle();
+  });
+  // フォーカスが乗ってしまった場合でも Enter / Space では発火させない
+  btn.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") e.preventDefault();
+  });
+});
+
 document.getElementById("btn-share-clear").addEventListener("click", (e) => {
   e.currentTarget.blur();
   shareClear();
 });
 
 /* ---------- ゲーム ---------- */
+
+/**
+ * 進行中のプレイを完全に破棄してタイトルへ戻る。
+ * 誤操作を避けるためクリックからのみ呼ぶ（Enterでは発火させない）。
+ */
+function restartFromTitle() {
+  stopTimer();                       // 戦闘中に押されてもタイマーは確実に止める
+  clearTimeout(state.introTimer);
+  clearTimeout(state.timeupTimer);
+  clearTimeout(state.glowTimer);
+  clearTimeout(state.penaltyTimer);
+  clearFinalTimers();
+
+  state.order = [];
+  state.stageIndex = 0;
+  state.hp = 0;
+  state.maxHp = 0;
+  state.queue = [];
+  state.spell = null;
+  state.pos = 0;
+  state.limitMs = 0;
+  state.penaltyMs = 0;
+  state.totalMs = 0;
+  state.stageMs = 0;
+  state.correct = 0;
+  state.miss = 0;
+  state.combo = 0;
+  state.maxCombo = 0;
+  state.stageCorrect = 0;
+  state.stageMiss = 0;
+  state.timeoutCount = 0;
+
+  document.getElementById("glow").classList.remove("on");
+  document.getElementById("hud-time").classList.remove("penalty");
+  document.getElementById("game-footer").classList.remove("urgent");
+
+  renderBest();
+  renderTitleCount();
+  showScreen("title");
+}
 
 function startGame() {
   stopTimer();
@@ -849,6 +988,7 @@ function startGame() {
   state.combo = 0;
   state.maxCombo = 0;
   state.totalMs = 0;
+  state.timeoutCount = 0;
   armImeWatch();       // タイマーとは独立して走らせる
   enterStage(0);
 }
@@ -1042,8 +1182,12 @@ function showClear() {
   document.getElementById("clear-combo").textContent    = state.maxCombo;
   document.getElementById("clear-accuracy").textContent = accuracyPercent() + "%";
 
-  saveBest();          // 自己ベストの更新はクリア時のみ
+  const earned = resolveTitles();
+  document.getElementById("clear-title").textContent = earned.text;
+
+  saveBest(earned);    // 自己ベストと称号の更新はクリア時のみ
   renderBest();
+  renderTitleCount();
   showScreen("clear");
 }
 
@@ -1118,17 +1262,47 @@ function loadBest() {
   }
 }
 
-/** 項目ごとに独立して良い方を残す */
-function saveBest() {
+/**
+ * 称号まわりの保存値を、型を保証した形で取り出す。
+ * 旧バージョンのデータ（bestTimeMs だけ入っている等）でも落ちないよう、
+ * 欠けている項目・型が違う項目はすべて既定値に倒す。
+ */
+function loadProgress() {
+  const b = loadBest() || {};
+  const ids = TITLE_BASE.concat(TITLE_CROWN).map(t => t.id);
+  const unlocked = Array.isArray(b.unlockedTitles)
+    ? b.unlockedTitles.filter(id => ids.indexOf(id) !== -1)   // 未知のIDは捨てる
+    : [];
+  return {
+    unlockedTitles: unlocked,
+    clearCount:     (typeof b.clearCount === "number" && isFinite(b.clearCount) && b.clearCount > 0) ? Math.floor(b.clearCount) : 0,
+    noTimeoutClear: b.noTimeoutClear === true,
+  };
+}
+
+/**
+ * 自己ベストと称号の保存。項目ごとに独立して良い方を残す。
+ * 称号ぶん（earned）は showClear から渡される。
+ */
+function saveBest(earned) {
   const prev = loadBest() || {};
+  const prog = loadProgress();
   const time     = Math.round(state.totalMs);
   const accuracy = accuracyPercent();
   const combo    = state.maxCombo;
+
+  const merged = prog.unlockedTitles.slice();
+  (earned ? earned.ids : []).forEach(id => {
+    if (merged.indexOf(id) === -1) merged.push(id);
+  });
 
   const next = {
     bestTimeMs:   (typeof prev.bestTimeMs   === "number") ? Math.min(prev.bestTimeMs, time)      : time,
     bestAccuracy: (typeof prev.bestAccuracy === "number") ? Math.max(prev.bestAccuracy, accuracy): accuracy,
     bestCombo:    (typeof prev.bestCombo    === "number") ? Math.max(prev.bestCombo, combo)      : combo,
+    unlockedTitles: merged,
+    clearCount:     earned ? earned.clearCount : prog.clearCount,
+    noTimeoutClear: prog.noTimeoutClear || (earned ? earned.noTimeout : false),
   };
 
   try {
@@ -1136,6 +1310,57 @@ function saveBest() {
   } catch (e) {
     /* 保存できなくても進行には影響させない */
   }
+}
+
+/* ---------- 称号 ---------- */
+
+/** クリアタイムから本体の称号を決める。maxMs 未満のうち最も厳しいもの。 */
+function baseTitleFor(totalMs) {
+  let best = null;
+  TITLE_BASE.forEach(t => {
+    if (t.maxMs === null) return;
+    if (totalMs < t.maxMs && (best === null || t.maxMs < best.maxMs)) best = t;
+  });
+  return best || TITLE_BASE[0];   // どれにも届かなければ b01
+}
+
+/** このプレイで獲得した冠。条件を満たしたものをすべて返す。 */
+function earnedCrowns(clearCount) {
+  const got = [];
+  const add = id => got.push(TITLE_CROWN.find(c => c.id === id));
+
+  if (rng() < 0.01)                add("c01");                // 邂逅の（1%）
+  if (accuracyPercent() === 100)   add("c02");                // 一片の狂いなき
+  if (state.maxCombo >= 150)       add("c03");                // 電光石火の
+  if (state.timeoutCount === 0)    add("c04");                // 無傷の
+  if (clearCount >= 10)            add("c05");                // 常勝の
+  if (clearCount === 1)            add("c06");                // 芽吹きの
+
+  return got;
+}
+
+/** クリア時の称号を確定させる（保存はまだしない） */
+function resolveTitles() {
+  const prog  = loadProgress();
+  const count = prog.clearCount + 1;
+  const base  = baseTitleFor(Math.round(state.totalMs));
+  const crowns = earnedCrowns(count);
+  const crown = crowns.slice().sort((a, b) => a.priority - b.priority)[0] || null;
+
+  return {
+    base, crown,
+    ids: [base.id].concat(crowns.map(c => c.id)),
+    clearCount: count,
+    noTimeout: state.timeoutCount === 0,
+    text: (crown ? crown.name + " " : "") + base.name,
+  };
+}
+
+/** タイトル画面の「称号 N/16」。データが無くても 0/16 を出す。 */
+function renderTitleCount() {
+  const total = TITLE_BASE.length + TITLE_CROWN.length;
+  document.getElementById("title-titles").textContent =
+    "称号 " + loadProgress().unlockedTitles.length + "/" + total;
 }
 
 /** タイトル画面の自己ベスト欄。データが無ければ非表示。 */
@@ -1147,7 +1372,8 @@ function renderBest() {
     return;
   }
   el.style.display = "";
-  el.textContent = "自己ベスト: " + formatTime(b.bestTimeMs) + " / 正確率 " + b.bestAccuracy + "%";
+  const acc = (typeof b.bestAccuracy === "number") ? " / 正確率 " + b.bestAccuracy + "%" : "";
+  el.textContent = "自己ベスト: " + formatTime(b.bestTimeMs) + acc;
 }
 
 /* ---------- X共有 ---------- */
@@ -1269,6 +1495,7 @@ function tick() {
 /** 4章「時間切れの扱い」。そのステージのみリセットして静かに再開する。 */
 function onTimeUp() {
   stopTimer();
+  state.timeoutCount++;
 
   const chara = state.order[state.stageIndex];
   document.getElementById("timeup-face").textContent = "";
@@ -1393,7 +1620,7 @@ function syncOgpTags() {
   const wanted = {
     'meta[property="og:title"]':       TITLE,
     'meta[property="og:description"]': OG_DESCRIPTION,
-    'meta[property="og:image"]':       base + "assets/ogp.png",
+    'meta[property="og:image"]':       base + "assets/ogp.jpg",
     'meta[property="og:url"]':         base,
   };
 
@@ -1415,6 +1642,7 @@ syncOgpTags();
 buildTitleRoster();
 buildClearRoster();
 renderBest();
+renderTitleCount();
 showScreen("title");
 </script>
 
