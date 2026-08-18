@@ -346,6 +346,8 @@
   #timeup-face img { width: 130px; height: 130px; }
   #timeup-line { font-size: 24px; }
   #timeup-note { font-size: 15px; opacity: 0.7; }
+  #timeup-buttons { display: flex; gap: 18px; margin-top: 4px; }
+  #btn-restart-timeup { margin-top: 4px; }
 
   /* ---------- 戦闘開始（インタースティシャル） ---------- */
 
@@ -546,6 +548,10 @@
     <div id="timeup-face" class="face"></div>
     <div id="timeup-line"></div>
     <div id="timeup-note">もう一度この相手に挑戦します</div>
+    <div id="timeup-buttons">
+      <button class="btn" id="btn-timeup-retry">もう一度挑戦（Enter）</button>
+    </div>
+    <button class="btn-restart" id="btn-restart-timeup" type="button" tabindex="-1">最初から始める</button>
   </section>
 
   <!-- 戦闘開始 -->
@@ -837,7 +843,6 @@ const STAGE_QUESTIONS = [5, 6, 6, 7];
 const STAGE_TIME_MS = [60000, 60000, 60000, 70000];
 
 const INTRO_MS  = 1500;   // 戦闘開始演出。この間タイマーは止まっている
-const TIMEUP_MS = 2200;   // 時間切れの表示時間
 
 const GLOW_MS          = 150;    // 撃ち込んだときの発光
 const IME_WATCH_MS     = 5000;   // この時間ぜんぶ空振りなら IME 警告
@@ -916,7 +921,7 @@ document.getElementById("btn-next").addEventListener("click", (e) => {
   e.currentTarget.blur();
   advanceFromDefeat();
 });
-[["btn-restart-game"], ["btn-restart-defeat"], ["btn-restart-clear"]].forEach(([id]) => {
+[["btn-restart-game"], ["btn-restart-defeat"], ["btn-restart-clear"], ["btn-restart-timeup"]].forEach(([id]) => {
   const btn = document.getElementById(id);
   btn.addEventListener("click", (e) => {
     e.currentTarget.blur();
@@ -926,6 +931,11 @@ document.getElementById("btn-next").addEventListener("click", (e) => {
   btn.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") e.preventDefault();
   });
+});
+
+document.getElementById("btn-timeup-retry").addEventListener("click", (e) => {
+  e.currentTarget.blur();   // Enter がボタンの再クリックにならないように
+  retryFromTimeUp();
 });
 
 document.getElementById("btn-share-clear").addEventListener("click", (e) => {
@@ -1502,13 +1512,16 @@ function onTimeUp() {
   renderFace(document.getElementById("timeup-face"), chara, "110px", "victory");
   document.getElementById("timeup-line").textContent = "「" + lineOf(chara, "victoryLine") + "」";
 
+  // 自動では進めない。Enter か「もう一度挑戦」ボタンを待つ。
+  // タイマーは stopTimer() で止まっているので、この画面の滞在時間は
+  // クリアタイムに加算されない。
   showScreen("timeup");
-  clearTimeout(state.timeupTimer);
-  state.timeupTimer = setTimeout(() => {
-    // 進行状況（すでに倒した相手）も登場順もそのまま。この相手だけやり直す。
-    setupBattle(state.stageIndex);
-    startBattle();
-  }, TIMEUP_MS);
+}
+
+/** 時間切れ画面からの再挑戦。進行状況も登場順もそのまま、この相手だけやり直す。 */
+function retryFromTimeUp() {
+  setupBattle(state.stageIndex);
+  startBattle();
 }
 
 /* ---------- フッター（HUD） ---------- */
@@ -1586,6 +1599,15 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       advanceFromDefeat();
+    }
+    return;
+  }
+
+  if (currentScreen === "timeup") {
+    // 打鍵は判定対象外。Enter だけを受け付ける。
+    if (e.key === "Enter") {
+      e.preventDefault();
+      retryFromTimeUp();
     }
     return;
   }
