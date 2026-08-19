@@ -803,10 +803,18 @@ function renderFace(el, chara, emojiSize, variant) {
   img.src = src;
   img.alt = chara.name;
   img.onerror = () => {
+    // すでに別の顔に描き直されていたら何もしない。
+    // 遅れて発火した onerror が、いまの相手の画像を消して
+    // 前の相手の絵文字で上書きしてしまうのを防ぐ。
+    if (img.parentNode !== el) return;
+
     if (variantImage && chara.image && chara.image !== variantImage) {
       // 差分画像が読めなかった → 通常画像 + フィルタへ落とす
       if (v.filter) el.classList.add(v.filter);
-      img.onerror = () => { el.textContent = chara.emoji; };
+      img.onerror = () => {
+        if (img.parentNode !== el) return;
+        el.textContent = chara.emoji;
+      };
       img.src = chara.image;
       return;
     }
@@ -843,7 +851,7 @@ function showScreen(name) {
 const STAGE_QUESTIONS = [5, 6, 6, 7];
 
 /** 制限時間。4番手だけ長いのは、長文で時間切れが頻発するのを避けるため。 */
-const STAGE_TIME_MS = [60000, 60000, 60000, 70000];
+const STAGE_TIME_MS = [60000, 60000, 60000, 90000];
 
 const INTRO_MS  = 1500;   // 戦闘開始演出。この間タイマーは止まっている
 
