@@ -27,6 +27,16 @@
     --untyped:   #6E4A2E;
     --accent:    #D4A03C;
     --hp:        #A83A2E;
+
+    /* キャラアイコンの表示サイズ。画像・絵文字どちらもこの寸法の箱に収まる。
+       大きさを変えたいときはここだけ触ればよい。 */
+    --face-title:  120px;   /* タイトル画面の4人 */
+    --face-game:   200px;   /* 戦闘中の相手 */
+    --face-intro:  220px;   /* 登場演出 */
+    --face-final:  220px;   /* 最後の相手 */
+    --face-defeat: 220px;   /* 撃破画面 */
+    --face-timeup: 220px;   /* 時間切れ画面 */
+    --face-clear:  100px;   /* クリア画面のロスター */
   }
 
   * { box-sizing: border-box; }
@@ -92,9 +102,24 @@
     width: 130px;
     text-align: center;
   }
-  /* キャラ画像の共通枠。透過PNGでも下地が抜けないよう背景を敷き、
-     正方形以外が来ても cover で枠内に収める。絵文字フォールバックには枠を付けない。 */
+  /* キャラの顔。画像でも絵文字でも同じ寸法の箱に収めるので、
+     混在しても高さが揃う。寸法は --face-size（:root の変数）で決まる。 */
+  .face {
+    width: var(--face-size, 100px);
+    height: var(--face-size, 100px);
+    flex: none;                                     /* flex 親の中で潰れない */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--face-size, 100px) * 0.8); /* 絵文字フォールバック */
+    line-height: 1;
+  }
+
+  /* 画像の共通枠。透過PNGでも下地が抜けないよう背景を敷き、
+     正方形以外が来ても cover で枠内に収める。絵文字には枠を付けない。 */
   .face img {
+    width: 100%;
+    height: 100%;
     background: var(--panel);
     border: 2px solid var(--border);
     border-radius: 8px;
@@ -102,11 +127,9 @@
   }
 
   .roster-face {
-    font-size: 56px;
-    line-height: 1.1;
-    height: 68px;
+    --face-size: var(--face-title);
+    margin: 0 auto;
   }
-  .roster-face img { width: 64px; height: 64px; }
   .roster-name {
     font-size: 15px;
     margin-top: 6px;
@@ -175,8 +198,7 @@
     align-items: center;
     justify-content: center;
   }
-  #enemy-face { font-size: 160px; line-height: 1; }
-  #enemy-face img { width: 180px; height: 180px; }
+  #enemy-face { --face-size: var(--face-game); }
 
   #spell-area {
     flex: 1;
@@ -322,8 +344,7 @@
     align-items: center;
     gap: 16px;
   }
-  #final-face { font-size: 120px; line-height: 1; }
-  #final-face img { width: 140px; height: 140px; }
+  #final-face { --face-size: var(--face-final); }
   #final-name { font-size: 26px; }
   #final-line { font-size: 22px; }
 
@@ -342,8 +363,7 @@
     letter-spacing: 0.08em;
     color: var(--accent);
   }
-  #timeup-face { font-size: 110px; line-height: 1; }
-  #timeup-face img { width: 130px; height: 130px; }
+  #timeup-face { --face-size: var(--face-timeup); }
   #timeup-line { font-size: 24px; }
   #timeup-note { font-size: 15px; opacity: 0.7; }
   #timeup-buttons { display: flex; gap: 18px; margin-top: 4px; }
@@ -358,16 +378,14 @@
     letter-spacing: 0.06em;
     color: var(--accent);
   }
-  #intro-face { font-size: 120px; line-height: 1; }
-  #intro-face img { width: 140px; height: 140px; }
+  #intro-face { --face-size: var(--face-intro); }
   #intro-line { font-size: 24px; }
 
   /* ---------- 撃破画面 ---------- */
 
   #screen-defeat { justify-content: center; gap: 22px; }
 
-  #defeat-face { font-size: 120px; line-height: 1; }
-  #defeat-face img { width: 140px; height: 140px; }
+  #defeat-face { --face-size: var(--face-defeat); }
   #defeat-head {
     font-size: 32px;
     color: var(--accent);
@@ -481,8 +499,7 @@
     gap: 6px 16px;
     font-size: 16px;
   }
-  #clear-roster .face { font-size: 24px; text-align: center; }
-  #clear-roster .face img { width: 28px; height: 28px; vertical-align: middle; }
+  #clear-roster .face { --face-size: var(--face-clear); }
   #clear-roster a {
     color: var(--accent);
     text-decoration: none;
@@ -781,11 +798,10 @@ const FACE_VARIANTS = {
  *   3. 絵文字 + フィルタ
  * 画像は onerror で1段ずつ下に落ちる。
  */
-function renderFace(el, chara, emojiSize, variant) {
+function renderFace(el, chara, variant) {
   const v = FACE_VARIANTS[variant] || FACE_VARIANTS.normal;
 
   el.textContent = "";
-  el.style.fontSize = emojiSize;
   el.classList.remove("face-defeat", "face-victory");
 
   const variantImage = chara[v.key];
@@ -912,7 +928,7 @@ function buildTitleRoster() {
     wrap.className = "roster-member";
     const face = document.createElement("div");
     face.className = "face roster-face";
-    renderFace(face, c, "56px");
+    renderFace(face, c);
     const name = document.createElement("div");
     name.className = "roster-name";
     name.textContent = c.name;
@@ -1027,7 +1043,7 @@ function enterStage(index) {
 
   document.getElementById("game-progress").textContent = (index + 1) + "人目 / " + state.order.length;
   document.getElementById("game-enemy-name").textContent = chara.name;
-  renderFace(document.getElementById("enemy-face"), chara, "160px");
+  renderFace(document.getElementById("enemy-face"), chara);
 
   setupBattle(index);
 
@@ -1044,7 +1060,7 @@ function enterStage(index) {
 /** 6-2. 戦闘開始（1.5秒）。演出中はタイマーを動かさない。 */
 function showIntro(index, chara) {
   document.getElementById("intro-head").textContent = (index + 1) + "人目 —— " + chara.name;
-  renderFace(document.getElementById("intro-face"), chara, "120px");
+  renderFace(document.getElementById("intro-face"), chara);
   document.getElementById("intro-line").textContent = "「" + lineOf(chara, "entryLine") + "」";
 
   showScreen("intro");
@@ -1058,7 +1074,7 @@ function showFinalIntro(chara) {
   const head   = document.getElementById("final-head");
   const body   = document.getElementById("final-body");
 
-  renderFace(document.getElementById("final-face"), chara, "120px");
+  renderFace(document.getElementById("final-face"), chara);
   document.getElementById("final-name").textContent = chara.name;
   document.getElementById("final-line").textContent = "「" + lineOf(chara, "entryLine") + "」";
 
@@ -1147,7 +1163,7 @@ function onSpellCompleted() {
 function showDefeat() {
   const chara = state.order[state.stageIndex];
 
-  renderFace(document.getElementById("defeat-face"), chara, "120px", "defeat");
+  renderFace(document.getElementById("defeat-face"), chara, "defeat");
   document.getElementById("defeat-head").textContent = chara.name + " に勝利！";
   document.getElementById("defeat-line").textContent = "「" + lineOf(chara, "defeatLine") + "」";
 
@@ -1226,7 +1242,7 @@ function buildClearRoster() {
   CHARACTERS.forEach(c => {
     const face = document.createElement("span");
     face.className = "face";
-    renderFace(face, c, "24px");
+    renderFace(face, c);
 
     const name = document.createElement("span");
     name.textContent = c.name;
@@ -1529,7 +1545,7 @@ function onTimeUp() {
 
   const chara = state.order[state.stageIndex];
   document.getElementById("timeup-face").textContent = "";
-  renderFace(document.getElementById("timeup-face"), chara, "110px", "victory");
+  renderFace(document.getElementById("timeup-face"), chara, "victory");
   document.getElementById("timeup-line").textContent = "「" + lineOf(chara, "victoryLine") + "」";
 
   // 自動では進めない。Enter か「もう一度挑戦」ボタンを待つ。
