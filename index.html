@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>株クラRPG</title>
+<title>株クラTPG</title>
 
 <!--
   OGP。クローラーは JS を実行しないため、ここは静的に書く必要がある。
   公開URLが決まったら、下の3つの絶対URLと <script> 内の SHARE_URL を同じ値に揃えること。
   ズレたまま読み込むと、起動時にコンソールへ警告が出る（syncOgpTags）。
 -->
-<meta property="og:title" content="株クラRPG">
+<meta property="og:title" content="株クラTPG">
 <meta property="og:description" content="投資用語をタイピングして4人に挑戦しよう">
 <meta property="og:image" content="https://kabukura-rpg.github.io/kabukura-rpg/assets/ogp.jpg">
 <meta property="og:url" content="https://kabukura-rpg.github.io/kabukura-rpg/">
@@ -616,13 +616,16 @@
    差し替えブロック（ここだけを編集する。以下のロジックには触れない）
    ========================================================================= */
 
-const TITLE = "株クラRPG";
+const TITLE = "株クラTPG";
 
 /** 公開URL。X共有と OGP で使う。確定したらここと <head> のOGPを同じ値にする。 */
 const SHARE_URL = "https://kabukura-rpg.github.io/kabukura-rpg/";
 
 /** OGP の説明文。og:title は TITLE をそのまま使う。 */
 const OG_DESCRIPTION = "投資用語をタイピングして4人に挑戦しよう";
+
+/** X共有の文面末尾に付けるハッシュタグ。撃破時・クリア時の両方で使う。 */
+const HASHTAGS = ["#株クラTPG", "#株クラRPG"];
 
 const CHARACTERS = [
   {
@@ -639,7 +642,7 @@ const CHARACTERS = [
   },
   { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "この私に勝つとは...", victoryLine: "強さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image: null, imageDefeat: null, imageVictory: null, emoji: "🍞", entryLine: "", defeatLine: "", victoryLine: "" },
-  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: null, imageDefeat: null, imageVictory: null, emoji: "👑", entryLine: "", defeatLine: "", victoryLine: "" },
+  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.png", imageDefeat: "assets/ponkotsuLose.png", imageVictory: "assets/ponkotsuWin.png", emoji: "👑", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
 
 const SPELL_TIERS = [
@@ -1143,8 +1146,8 @@ function showDefeat() {
   const stats = document.getElementById("defeat-stats");
   stats.textContent = "";
   stats.append("⏱ ");
-  stats.appendChild(bold(stageSeconds()));
-  stats.append("秒 / 正確率 ");
+  stats.appendChild(bold(stageTime()));
+  stats.append(" / 正確率 ");
   stats.appendChild(bold(stageAccuracyPercent()));
   stats.append("%");
 
@@ -1157,9 +1160,9 @@ function bold(value) {
   return b;
 }
 
-/** その相手に費やした秒数（時間切れリトライぶんを含む） */
-function stageSeconds() {
-  return Math.max(1, Math.round(state.stageMs / 1000));
+/** その相手に費やした時間（時間切れリトライぶんを含む） */
+function stageTime() {
+  return formatTime(state.stageMs);
 }
 
 /** その相手だけの正確率 */
@@ -1181,10 +1184,17 @@ function advanceFromDefeat() {
 
 /* ---------- クリア画面 ---------- */
 
-/** 「3分12秒」形式 */
+/**
+ * 「01:23.45」形式（分:秒.1/100秒）。
+ * 切り捨てで計算する。四捨五入すると 59.996秒 が 00:60.00 になってしまうため。
+ * 保存値はミリ秒のままで、ここは表示専用。
+ */
 function formatTime(ms) {
-  const total = Math.round(ms / 1000);
-  return Math.floor(total / 60) + "分" + String(total % 60).padStart(2, "0") + "秒";
+  const total = (typeof ms === "number" && isFinite(ms) && ms > 0) ? Math.floor(ms) : 0;
+  const m  = Math.floor(total / 60000);
+  const s  = Math.floor((total % 60000) / 1000);
+  const cs = Math.floor((total % 1000) / 10);
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "." + String(cs).padStart(2, "0");
 }
 
 function showClear() {
@@ -1252,7 +1262,8 @@ function shareClear() {
     "⏱ " + formatTime(state.totalMs) +
     " / 最大コンボ " + state.maxCombo +
     " / 正確率 " + accuracyPercent() + "%\n\n" +
-    "投資用語をタイピングして4人に挑戦するゲームです"
+    "投資用語をタイピングして4人に挑戦するゲームです\n" +
+    HASHTAGS.join(" ")
   );
 }
 
@@ -1400,7 +1411,8 @@ function shareDefeat() {
   openShare(
     "「" + TITLE + "」\n" +
     chara.name + " に勝利！\n" +
-    "⏱ " + stageSeconds() + "秒 / 正確率 " + stageAccuracyPercent() + "%"
+    "⏱ " + stageTime() + " / 正確率 " + stageAccuracyPercent() + "%\n" +
+    HASHTAGS.join(" ")
   );
 }
 
