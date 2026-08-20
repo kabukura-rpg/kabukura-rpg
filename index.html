@@ -37,6 +37,7 @@
     --face-defeat: 220px;   /* 撃破画面 */
     --face-timeup: 220px;   /* 時間切れ画面 */
     --face-clear:  100px;   /* クリア画面のロスター */
+    --face-profile: 96px;   /* 人物紹介のカード */
   }
 
   * { box-sizing: border-box; }
@@ -158,6 +159,19 @@
     border-radius: 4px;
   }
 
+  .btn-sound {
+    margin-top: 14px;
+    padding: 6px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-sound:hover { filter: brightness(1.3); }
+
   #title-best {
     margin-top: 18px;
     font-size: 14px;
@@ -168,6 +182,54 @@
     margin-top: 4px;
     font-size: 14px;
     color: var(--accent);
+    opacity: 0.9;
+  }
+
+  /* ---------- 人物紹介 ---------- */
+
+  #screen-profile { overflow-y: auto; }
+  #profile-inner {
+    margin: auto;
+    padding: 22px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  #profile-head {
+    font-size: 26px;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+  }
+  #profile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .profile-card {
+    width: 640px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .profile-card .face { --face-size: var(--face-profile); }
+  .profile-body { flex: 1; min-width: 0; }
+  .profile-name { font-size: 20px; }
+  .profile-handle { font-size: 14px; margin-top: 2px; }
+  .profile-handle a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .profile-handle a:hover { filter: brightness(1.2); }
+  .profile-text {
+    margin-top: 8px;
+    font-size: 15px;
+    line-height: 1.6;
     opacity: 0.9;
   }
 
@@ -471,6 +533,30 @@
     border-radius: 4px;
   }
 
+  #clear-tip {
+    max-width: 560px;
+    padding: 12px 24px;
+    text-align: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  #clear-tip-head {
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  #clear-tip-word {
+    font-size: 19px;
+    color: var(--typed);
+    margin-bottom: 4px;
+  }
+  #clear-tip-desc {
+    font-size: 15px;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+
   #clear-score {
     display: grid;
     grid-template-columns: auto auto;
@@ -520,7 +606,9 @@
     <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
     <div id="title-roster"></div>
     <button class="btn" id="btn-start">はじめる（Enter）</button>
+    <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
     <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
+    <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
     <div id="title-best">自己ベスト: ——</div>
     <div id="title-titles">称号 0/16</div>
   </section>
@@ -571,6 +659,15 @@
     <button class="btn-restart" id="btn-restart-timeup" type="button" tabindex="-1">最初から始める</button>
   </section>
 
+  <!-- 人物紹介 -->
+  <section class="screen" id="screen-profile">
+   <div id="profile-inner">
+    <div id="profile-head">人物紹介</div>
+    <div id="profile-cards"></div>
+    <button class="btn" id="btn-profile-back" type="button">タイトルへ戻る</button>
+   </div>
+  </section>
+
   <!-- 戦闘開始 -->
   <section class="screen" id="screen-intro">
     <div id="intro-head"></div>
@@ -612,6 +709,12 @@
 
     <div class="rule"></div>
 
+    <div id="clear-tip" hidden>
+      <div id="clear-tip-head">💡 今回の豆知識</div>
+      <div id="clear-tip-word"></div>
+      <div id="clear-tip-desc"></div>
+    </div>
+
     <img id="finale-img" class="finale" src="assets/finale.jpg" alt="">
     <div id="finale-fallback" hidden>
       <div>遊んでくれてありがとう！</div>
@@ -642,7 +745,31 @@ const SHARE_URL = "https://kabukura-rpg.github.io/kabukura-rpg/";
 const OG_DESCRIPTION = "投資用語をタイピングして4人に挑戦しよう";
 
 /** X共有の文面末尾に付けるハッシュタグ。撃破時・クリア時の両方で使う。 */
-const HASHTAGS = ["#株クラTPG", "#株クラRPG"];
+const HASHTAGS = ["#株クラTPG"];
+
+/**
+ * 音源。ファイルが未配置でも無音で進むので、届いたぶんから差し替えればよい。
+ * bgm.stage は登場順ではなくキャラIDで引く（登場順は毎回変わるため）。
+ */
+const AUDIO = {
+  bgm: {
+    title: "assets/bgm_title.mp3",
+    stage: {
+      micchan:  null,
+      nimushi:  null,
+      nempan:   null,
+      ponkotsu: null,
+    },
+  },
+  se: {
+    click:   "assets/se_click.mp3",
+    type:    "assets/se_type.mp3",
+    miss:    "assets/se_miss.mp3",
+    defeat:  "assets/se_defeat.mp3",   // プレイヤーが勝ったとき
+    timeup:  "assets/se_timeup.mp3",   // プレイヤーが負けたとき
+    clear:   "assets/se_clear.mp3",
+  },
+};
 
 const CHARACTERS = [
   {
@@ -653,13 +780,15 @@ const CHARACTERS = [
     imageDefeat: "assets/micchanLose.jpeg",    // 負けたときの差分。無ければ image にフィルタをかける
     imageVictory: "assets/micchanWin.jpeg",   // 勝ったときの差分。同上
     emoji: "🔮",
+    profileImage: null,   // 人物紹介用。null なら image → emoji の順に落とす
+    profileText:  "",     // 一言紹介。空でも崩れない
     entryLine:   "ねぇ、私と遊ぼ！",
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "この私に勝つとは...", victoryLine: "強さって罪だよねー" },
-  { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
-  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.png", imageDefeat: "assets/ponkotsuLose.png", imageVictory: "assets/ponkotsuWin.png", emoji: "👑", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: null, profileText: "", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "この私に勝つとは...", victoryLine: "強さって罪だよねー" },
+  { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: null, profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
+  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: null, profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
 
 const SPELL_TIERS = [
@@ -725,6 +854,26 @@ const SPELL_TIERS = [
   ],
 ];
 
+/* クリア画面で1語だけ出す用語解説。SPELL_TIERS とは独立していて、
+   ここを増やしても出題内容には影響しない。用語とその説明のみに留めること。 */
+const TIPS = [
+  { word: "COMPOUND",            ja: "複利",             desc: "利息が元本に組み込まれ、その利息にもまた利息がつく仕組み" },
+  { word: "DIVIDEND",            ja: "配当",             desc: "企業が利益の一部を株主に分配するお金" },
+  { word: "INDEX",               ja: "指数",             desc: "市場全体の値動きを1つの数値にまとめたもの。日経平均やS&P500など" },
+  { word: "VOLATILITY",          ja: "変動率",           desc: "価格の振れ幅の大きさを表す指標" },
+  { word: "DRAWDOWN",            ja: "最大下落率",       desc: "資産が最高値からどこまで下がったかを示す幅" },
+  { word: "NISA",                ja: "ニーサ",           desc: "日本の少額投資非課税制度。制度の枠内では運用益に税金がかからない" },
+  { word: "IDECO",               ja: "イデコ",           desc: "個人型確定拠出年金。掛金を自分で運用し、原則60歳以降に受け取る制度" },
+  { word: "EXPENSE RATIO",       ja: "信託報酬",         desc: "投資信託を保有している間、運用会社などに支払う年率のコスト" },
+  { word: "DIVERSIFICATION",     ja: "分散投資",         desc: "投資先を複数に分けて、値動きの偏りを抑える考え方" },
+  { word: "BEAR MARKET",         ja: "下落相場",         desc: "相場が下降傾向にある局面。熊が爪を振り下ろす動きが語源とされる" },
+  { word: "BULL MARKET",         ja: "上昇相場",         desc: "相場が上昇傾向にある局面。雄牛が角を突き上げる動きが語源とされる" },
+  { word: "DOLLAR COST AVERAGE", ja: "ドルコスト平均法", desc: "一定額を定期的に買い付ける方法。価格が高いときは少なく、安いときは多く買うことになる" },
+  { word: "TOTAL RETURN",        ja: "総合収益",         desc: "値上がり益と配当などを合わせた、全体としての収益" },
+  { word: "BLUE CHIP",           ja: "優良株",           desc: "業績や財務が安定した大企業の株式を指す呼び名。ポーカーの高額チップが語源" },
+  { word: "EMERGENCY FUND",      ja: "生活防衛資金",     desc: "急な出費や収入減に備えて、現金で置いておくお金" },
+];
+
 /* 称号（本体）。クリアタイムが maxMs 未満のうち、いちばん条件の厳しいものが付く。
    b01 は maxMs: null ＝ どれにも当てはまらないとき（3分以上）の受け皿。 */
 const TITLE_BASE = [
@@ -787,6 +936,7 @@ function shuffled(arr) {
  */
 const FACE_VARIANTS = {
   normal:  { key: "image",        filter: "" },
+  profile: { key: "profileImage", filter: ""             },   // 人物紹介画面
   defeat:  { key: "imageDefeat",  filter: "face-defeat"  },   // プレイヤーが勝った相手
   victory: { key: "imageVictory", filter: "face-victory" },   // プレイヤーに勝った相手
 };
@@ -840,10 +990,127 @@ function renderFace(el, chara, variant) {
   el.appendChild(img);
 }
 
+/* ---------- 音（BGM・効果音） ---------- */
+
+/**
+ * HTMLAudioElement だけで組む。Web Audio API は使わない。
+ * ファイルが無い / 自動再生が拒否される のどちらでも例外を投げず、無音で進む。
+ */
+const audio = {
+  enabled: false,    // 音を鳴らす設定。既定は OFF
+  unlocked: false,   // 最初のユーザー操作で true（ブラウザの自動再生制限の解除）
+  bgm: null,         // 再生中の Audio
+  bgmSrc: null,      // 鳴らしたい曲。解禁前・OFF中でも覚えておく
+  bgmCurrent: null,  // いま鳴らしている曲の src
+  pools: {},         // 効果音のプール src -> { els, next }
+  broken: {},        // 読み込みに失敗した src。以後は試さない
+};
+
+/** 同じ効果音を重ねて鳴らせる数。打鍵音が連打されても詰まらないようにする。 */
+const SE_POOL_SIZE = 4;
+
+/** play() の失敗は握りつぶす（未配置ファイル・自動再生制限のどちらでも落とさない） */
+function playSafely(el) {
+  try {
+    const p = el.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (e) {
+    /* 無音のまま進行する */
+  }
+}
+
+function makeAudio(src, loop) {
+  const el = new Audio();
+  el.loop = !!loop;
+  el.preload = "auto";
+  el.addEventListener("error", () => { audio.broken[src] = true; });
+  el.src = src;
+  return el;
+}
+
+function canPlay(src) {
+  return audio.enabled && audio.unlocked && !!src && !audio.broken[src];
+}
+
+/** 効果音。プールを順番に使うので、再生中でも即座に鳴らし直せる。 */
+function playSe(src) {
+  if (!canPlay(src)) return;
+
+  let pool = audio.pools[src];
+  if (!pool) {
+    pool = { els: [], next: 0 };
+    for (let i = 0; i < SE_POOL_SIZE; i++) pool.els.push(makeAudio(src, false));
+    audio.pools[src] = pool;
+  }
+
+  const el = pool.els[pool.next];
+  pool.next = (pool.next + 1) % pool.els.length;
+  try { el.currentTime = 0; } catch (e) { /* まだ読み込めていないだけ */ }
+  playSafely(el);
+}
+
+function stopBgmElement() {
+  if (!audio.bgm) return;
+  try { audio.bgm.pause(); audio.bgm.currentTime = 0; } catch (e) { /* 無視 */ }
+  audio.bgm = null;
+  audio.bgmCurrent = null;
+}
+
+/** BGMを止め、鳴らしたい曲も忘れる（撃破・時間切れ・クリア画面用） */
+function stopBgm() {
+  audio.bgmSrc = null;
+  stopBgmElement();
+}
+
+/** BGM。同じ曲なら鳴らし直さない（ステージ内でぶつ切りにならないように）。 */
+function playBgm(src) {
+  audio.bgmSrc = src || null;
+
+  if (!canPlay(audio.bgmSrc)) {
+    stopBgmElement();   // OFF・解禁前・ファイル無しは無音。予約だけ残す
+    return;
+  }
+  if (audio.bgm && audio.bgmCurrent === audio.bgmSrc && !audio.bgm.paused) return;
+
+  stopBgmElement();
+  audio.bgmCurrent = audio.bgmSrc;
+  audio.bgm = makeAudio(audio.bgmSrc, true);
+  playSafely(audio.bgm);
+}
+
+/** キャラIDで曲を引く。配列で書かれている場合は CHARACTERS の定義順で引く。 */
+function bgmFor(chara) {
+  const table = (AUDIO.bgm && AUDIO.bgm.stage) || {};
+  if (Array.isArray(table)) return table[CHARACTERS.indexOf(chara)] || null;
+  return table[chara.id] || null;
+}
+
+/** 自動再生制限の解除。最初のクリック（またはタイトルのEnter）から呼ぶ。 */
+function unlockAudio() {
+  if (audio.unlocked) return;
+  audio.unlocked = true;
+  if (audio.bgmSrc) playBgm(audio.bgmSrc);   // 解禁前に予約していた曲を鳴らす
+}
+
+function setSoundEnabled(on) {
+  audio.enabled = !!on;
+  saveSoundSetting(audio.enabled);
+  renderSoundToggle();
+  if (audio.enabled) playBgm(audio.bgmSrc);
+  else stopBgmElement();                     // OFF は完全に無音。予約は残す
+}
+
+function renderSoundToggle() {
+  const btn = document.getElementById("btn-sound");
+  btn.textContent = audio.enabled ? "🔊 音 ON" : "🔈 音 OFF";
+  btn.setAttribute("aria-pressed", audio.enabled ? "true" : "false");
+}
+
 /* ---------- 画面遷移 ---------- */
 
 const SCREENS = {
-  title:  document.getElementById("screen-title"),
+  title:   document.getElementById("screen-title"),
+  profile: document.getElementById("screen-profile"),
   intro:  document.getElementById("screen-intro"),
   final:  document.getElementById("screen-final"),
   game:   document.getElementById("screen-game"),
@@ -937,7 +1204,31 @@ function buildTitleRoster() {
   });
 }
 
-document.getElementById("btn-start").addEventListener("click", startGame);
+// ボタン類のクリック音はまとめて拾う（個別の listener を汚さない）
+document.getElementById("stage").addEventListener("click", (e) => {
+  if (e.target.closest("button, #finale-save")) playSe(AUDIO.se.click);
+});
+
+// 自動再生制限の解除は「はじめる」と音トグルから。
+// タイトルの Enter でも解除する（クリックせずに始める人がいるため）。
+document.getElementById("btn-sound").addEventListener("click", () => {
+  unlockAudio();
+  setSoundEnabled(!audio.enabled);
+});
+
+document.getElementById("btn-start").addEventListener("click", () => {
+  unlockAudio();
+  startGame();
+});
+
+document.getElementById("btn-profile").addEventListener("click", () => {
+  showScreen("profile");        // タイトルBGMはそのまま鳴らし続ける
+});
+
+document.getElementById("btn-profile-back").addEventListener("click", () => {
+  document.getElementById("screen-profile").scrollTop = 0;
+  showScreen("title");
+});
 document.getElementById("btn-replay").addEventListener("click", startGame);
 
 document.getElementById("btn-share-defeat").addEventListener("click", (e) => {
@@ -1009,6 +1300,7 @@ function restartFromTitle() {
 
   renderBest();
   renderTitleCount();
+  playBgm(AUDIO.bgm.title);
   showScreen("title");
 }
 
@@ -1046,6 +1338,7 @@ function enterStage(index) {
   renderFace(document.getElementById("enemy-face"), chara);
 
   setupBattle(index);
+  playBgm(bgmFor(chara));   // 登場演出のうちから次の曲を鳴らし始める
 
   // 3人撃破済みで4人目に入るときだけ「最後の相手」演出に差し替える。
   // 時間切れリトライは enterStage を通らないので、2回目以降は演出が入らない。
@@ -1120,6 +1413,7 @@ function setupBattle(index) {
 
 /** 演出を抜けて戦闘画面へ。ここでタイマーが動き出す。 */
 function startBattle() {
+  playBgm(bgmFor(state.order[state.stageIndex]));   // 時間切れ後の再開でも鳴り直す
   showScreen("game");
   startTimer();
 }
@@ -1161,6 +1455,9 @@ function onSpellCompleted() {
 
 /** 6-4. Enter 待ち。X共有を押す時間が必要なので自動では進めない。 */
 function showDefeat() {
+  stopBgm();
+  playSe(AUDIO.se.defeat);
+
   const chara = state.order[state.stageIndex];
 
   renderFace(document.getElementById("defeat-face"), chara, "defeat");
@@ -1221,7 +1518,24 @@ function formatTime(ms) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "." + String(cs).padStart(2, "0");
 }
 
+/** クリアのたびに TIPS から1語選んで出す。空配列ならブロックごと隠す。 */
+function renderTip() {
+  const box = document.getElementById("clear-tip");
+  if (!Array.isArray(TIPS) || TIPS.length === 0) {
+    box.hidden = true;
+    return;
+  }
+  const tip = TIPS[Math.floor(rng() * TIPS.length)] || {};
+  const ja = tip.ja ? "（" + tip.ja + "）" : "";
+  document.getElementById("clear-tip-word").textContent = (tip.word || "") + ja;
+  document.getElementById("clear-tip-desc").textContent = tip.desc || "";
+  box.hidden = false;
+}
+
 function showClear() {
+  stopBgm();
+  playSe(AUDIO.se.clear);
+
   document.getElementById("clear-time").textContent     = formatTime(state.totalMs);
   document.getElementById("clear-combo").textContent    = state.maxCombo;
   document.getElementById("clear-accuracy").textContent = accuracyPercent() + "%";
@@ -1229,10 +1543,57 @@ function showClear() {
   const earned = resolveTitles();
   document.getElementById("clear-title").textContent = earned.text;
 
+  renderTip();
+
   saveBest(earned);    // 自己ベストと称号の更新はクリア時のみ
   renderBest();
   renderTitleCount();
   showScreen("clear");
+}
+
+/** 人物紹介のカード。画像は profileImage → image → emoji の順に落ちる。 */
+function buildProfileCards() {
+  const box = document.getElementById("profile-cards");
+  box.textContent = "";
+
+  CHARACTERS.forEach(c => {
+    const card = document.createElement("div");
+    card.className = "profile-card";
+
+    const face = document.createElement("div");
+    face.className = "face";
+    renderFace(face, c, "profile");
+
+    const body = document.createElement("div");
+    body.className = "profile-body";
+
+    const name = document.createElement("div");
+    name.className = "profile-name";
+    name.textContent = c.name;
+
+    const handle = document.createElement("div");
+    handle.className = "profile-handle";
+    const link = document.createElement("a");
+    link.href = "https://x.com/" + c.handle.replace(/^@/, "");
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = c.handle;
+    handle.appendChild(link);
+
+    body.append(name, handle);
+
+    // 紹介文が空ならブロックごと出さない（余白だけ空くのを避ける）
+    const text = (typeof c.profileText === "string") ? c.profileText.trim() : "";
+    if (text) {
+      const intro = document.createElement("div");
+      intro.className = "profile-text";
+      intro.textContent = text;
+      body.appendChild(intro);
+    }
+
+    card.append(face, body);
+    box.appendChild(card);
+  });
 }
 
 /** 4人全員のXリンク。登場順ではなく CHARACTERS の定義順で固定する。 */
@@ -1348,6 +1709,7 @@ function saveBest(earned) {
     unlockedTitles: merged,
     clearCount:     earned ? earned.clearCount : prog.clearCount,
     noTimeoutClear: prog.noTimeoutClear || (earned ? earned.noTimeout : false),
+    soundEnabled:   audio.enabled,
   };
 
   try {
@@ -1399,6 +1761,22 @@ function resolveTitles() {
     noTimeout: state.timeoutCount === 0,
     text: (crown ? crown.name + " " : "") + base.name,
   };
+}
+
+/** 音のON/OFF。既定は OFF。 */
+function loadSoundSetting() {
+  const b = loadBest() || {};
+  return b.soundEnabled === true;
+}
+
+function saveSoundSetting(on) {
+  const prev = loadBest() || {};
+  prev.soundEnabled = !!on;
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
+  } catch (e) {
+    /* 保存できなくても音の再生自体には影響させない */
+  }
 }
 
 /** タイトル画面の「称号 N/16」。データが無くても 0/16 を出す。 */
@@ -1541,6 +1919,8 @@ function tick() {
 /** 4章「時間切れの扱い」。そのステージのみリセットして静かに再開する。 */
 function onTimeUp() {
   stopTimer();
+  stopBgm();
+  playSe(AUDIO.se.timeup);
   state.timeoutCount++;
 
   const chara = state.order[state.stageIndex];
@@ -1599,6 +1979,7 @@ function handleTyping(key) {
   const expected = state.spell.w[state.pos];
   if (key.toLowerCase() === expected.toLowerCase()) {
     state.pos++;
+    playSe(AUDIO.se.type);
     state.correct++;
     state.stageCorrect++;
     state.combo++;
@@ -1609,6 +1990,7 @@ function handleTyping(key) {
       renderSpell();
     }
   } else {
+    playSe(AUDIO.se.miss);
     state.combo = 0;
     state.miss++;
     state.stageMiss++;
@@ -1625,6 +2007,7 @@ document.addEventListener("keydown", (e) => {
   if (currentScreen === "title") {
     if (e.key === "Enter") {
       e.preventDefault();
+      unlockAudio();     // キーボード操作もユーザー操作として扱われる
       startGame();
     }
     return;
@@ -1697,8 +2080,12 @@ function syncOgpTags() {
 /* ---------- 初期化 ---------- */
 
 syncOgpTags();
+audio.enabled = loadSoundSetting();
+renderSoundToggle();
+playBgm(AUDIO.bgm.title);   // 解禁前は予約されるだけで鳴らない
 buildTitleRoster();
 buildClearRoster();
+buildProfileCards();
 renderBest();
 renderTitleCount();
 showScreen("title");
