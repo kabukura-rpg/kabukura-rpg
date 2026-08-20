@@ -38,6 +38,9 @@
     --face-timeup: 220px;   /* 時間切れ画面 */
     --face-clear:  100px;   /* クリア画面のロスター */
     --face-profile: 96px;   /* 人物紹介のカード */
+
+    /* タイトル画面の縦積み要素の横幅。IME警告の文言が収まる幅を基準にしている。 */
+    --title-control-w: 360px;
   }
 
   * { box-sizing: border-box; }
@@ -79,6 +82,16 @@
   /* ---------- タイトル画面 ---------- */
 
   #screen-title { justify-content: center; gap: 6px; }
+
+  /* 「はじめる」「人物紹介」「IME警告」「音」の横幅を揃える。
+     高さはそれぞれの padding のままなので、主導線の「はじめる」は大きいまま。 */
+  #btn-start,
+  #btn-profile,
+  #title-ime,
+  #btn-sound {
+    width: var(--title-control-w);
+    text-align: center;
+  }
 
   #title-heading {
     font-size: 48px;
