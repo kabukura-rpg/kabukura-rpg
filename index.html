@@ -30,7 +30,7 @@
 
     /* キャラアイコンの表示サイズ。画像・絵文字どちらもこの寸法の箱に収まる。
        大きさを変えたいときはここだけ触ればよい。 */
-    --face-title:  100px;   /* タイトル画面の4人 */
+    --face-title:  120px;   /* タイトル画面の4人 */
     --face-game:   200px;   /* 戦闘中の相手 */
     --face-intro:  220px;   /* 登場演出 */
     --face-final:  220px;   /* 最後の相手 */
@@ -41,6 +41,8 @@
 
     /* タイトル画面の縦積み要素の横幅。IME警告の文言が収まる幅を基準にしている。 */
     --title-control-w: 360px;
+    /* その4要素の縦の間隔。ここ1箇所で等間隔が決まる。 */
+    --title-control-gap: 24px;
   }
 
   * { box-sizing: border-box; }
@@ -82,6 +84,15 @@
   /* ---------- タイトル画面 ---------- */
 
   #screen-title { justify-content: center; gap: 6px; }
+
+  /* 4要素は1つの入れ物に入れて、間隔を gap だけで決める
+     （個別の margin が混ざると間隔がばらつくため）。 */
+  #title-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--title-control-gap);
+  }
 
   /* 「はじめる」「人物紹介」「IME警告」「音」の横幅を揃える。
      高さはそれぞれの padding のままなので、主導線の「はじめる」は大きいまま。 */
@@ -164,7 +175,6 @@
   .btn:hover { filter: brightness(1.1); }
 
   #title-ime {
-    margin-top: 16px;
     padding: 10px 20px;
     font-size: 15px;
     color: var(--accent);
@@ -174,7 +184,6 @@
   }
 
   .btn-sound {
-    margin-top: 8px;
     padding: 6px 18px;
     font-family: inherit;
     font-size: 14px;
@@ -623,10 +632,12 @@
     <h1 id="title-heading"></h1>
     <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
     <div id="title-roster"></div>
-    <button class="btn" id="btn-start">はじめる（Enter）</button>
-    <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
-    <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
-    <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
+    <div id="title-controls">
+      <button class="btn" id="btn-start">はじめる（Enter）</button>
+      <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
+      <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
+      <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
+    </div>
     <div id="title-stats">
       <span id="title-best">自己ベスト: ——</span>
       <span id="title-titles">称号 0/16</span>
