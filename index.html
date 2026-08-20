@@ -39,10 +39,16 @@
     --face-clear:  100px;   /* クリア画面のロスター */
     --face-profile: 96px;   /* 人物紹介のカード */
 
+    /* タイトルロゴ。幅を基準に、高さは画像の比率のまま伸びる。
+       --logo-h は保険の上限で、極端に縦長のロゴが来てもレイアウトが
+       壊れないようにするためのもの（通常はここに当たらない）。 */
+    --logo-w: 360px;
+    --logo-h: 200px;
+
     /* タイトル画面の縦積み要素の横幅。IME警告の文言が収まる幅を基準にしている。 */
     --title-control-w: 360px;
     /* その4要素の縦の間隔。ここ1箇所で等間隔が決まる。 */
-    --title-control-gap: 24px;
+    --title-control-gap: 12px;
   }
 
   * { box-sizing: border-box; }
@@ -104,6 +110,16 @@
     text-align: center;
   }
 
+  /* ロゴ。幅は固定、高さは比率のまま。縦長のロゴが来ても
+     max-height と contain で枠を超えない（レイアウトが破綻しない）。 */
+  #title-logo {
+    width: var(--logo-w);
+    height: auto;               /* 比率はそのまま */
+    max-height: var(--logo-h);
+    object-fit: contain;        /* 上限に当たった場合も比率を崩さない */
+    display: block;
+  }
+
   #title-heading {
     font-size: 48px;
     font-weight: bold;
@@ -112,16 +128,11 @@
     margin: 0;
   }
 
-  #title-lead {
-    font-size: 18px;
-    margin: 0 0 14px;
-    opacity: 0.9;
-  }
-
   #title-roster {
     display: flex;
     gap: 44px;
-    margin-bottom: 18px;
+    margin-top: 10px;
+    margin-bottom: 14px;
   }
 
   .roster-member {
@@ -629,8 +640,8 @@
 
   <!-- タイトル画面 -->
   <section class="screen" id="screen-title">
-    <h1 id="title-heading"></h1>
-    <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
+    <img id="title-logo" src="assets/logo.png" alt="">
+    <h1 id="title-heading" hidden></h1>
     <div id="title-roster"></div>
     <div id="title-controls">
       <button class="btn" id="btn-start">はじめる（Enter）</button>
@@ -1217,6 +1228,23 @@ const state = {
 
 document.getElementById("title-heading").textContent = TITLE;
 document.title = TITLE;
+
+/** ロゴが無い（読み込めない）ときは TITLE から作ったテキスト見出しに切り替える。 */
+(function setupLogo() {
+  const img     = document.getElementById("title-logo");
+  const heading = document.getElementById("title-heading");
+  img.alt = TITLE;
+
+  img.addEventListener("load", () => {
+    img.hidden = false;
+    heading.hidden = true;
+  });
+
+  img.addEventListener("error", () => {
+    img.hidden = true;
+    heading.hidden = false;
+  });
+})();
 
 function buildTitleRoster() {
   const box = document.getElementById("title-roster");
