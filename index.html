@@ -30,7 +30,7 @@
 
     /* キャラアイコンの表示サイズ。画像・絵文字どちらもこの寸法の箱に収まる。
        大きさを変えたいときはここだけ触ればよい。 */
-    --face-title:  120px;   /* タイトル画面の4人 */
+    --face-title:  100px;   /* タイトル画面の4人 */
     --face-game:   200px;   /* 戦闘中の相手 */
     --face-intro:  220px;   /* 登場演出 */
     --face-final:  220px;   /* 最後の相手 */
@@ -61,6 +61,7 @@
     position: relative;
     width: 960px;
     height: 640px;
+    flex: none;        /* 画面が狭くても 960×640 を保つ（縮むと文字が折り返して崩れる） */
     background: var(--bg);
     border: 2px solid var(--border);
     overflow: hidden;
@@ -77,10 +78,10 @@
 
   /* ---------- タイトル画面 ---------- */
 
-  #screen-title { justify-content: center; gap: 8px; }
+  #screen-title { justify-content: center; gap: 6px; }
 
   #title-heading {
-    font-size: 56px;
+    font-size: 48px;
     font-weight: bold;
     letter-spacing: 0.08em;
     color: var(--accent);
@@ -89,14 +90,14 @@
 
   #title-lead {
     font-size: 18px;
-    margin: 0 0 28px;
+    margin: 0 0 14px;
     opacity: 0.9;
   }
 
   #title-roster {
     display: flex;
     gap: 44px;
-    margin-bottom: 36px;
+    margin-bottom: 18px;
   }
 
   .roster-member {
@@ -150,7 +151,7 @@
   .btn:hover { filter: brightness(1.1); }
 
   #title-ime {
-    margin-top: 30px;
+    margin-top: 16px;
     padding: 10px 20px;
     font-size: 15px;
     color: var(--accent);
@@ -160,7 +161,7 @@
   }
 
   .btn-sound {
-    margin-top: 14px;
+    margin-top: 8px;
     padding: 6px 18px;
     font-family: inherit;
     font-size: 14px;
@@ -172,18 +173,16 @@
   }
   .btn-sound:hover { filter: brightness(1.3); }
 
-  #title-best {
-    margin-top: 18px;
+  /* 自己ベストと称号は1行にまとめる（縦を稼ぐため） */
+  #title-stats {
+    margin-top: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 22px;
     font-size: 14px;
-    opacity: 0.75;
   }
-
-  #title-titles {
-    margin-top: 4px;
-    font-size: 14px;
-    color: var(--accent);
-    opacity: 0.9;
-  }
+  #title-best { opacity: 0.75; }
+  #title-titles { color: var(--accent); opacity: 0.95; }
 
   /* ---------- 人物紹介 ---------- */
 
@@ -473,6 +472,12 @@
     border: 1px solid var(--border);
   }
 
+  /* タイトルの「人物紹介」は副次的な導線なので小さめに */
+  #btn-profile {
+    padding: 8px 26px;
+    font-size: 16px;
+  }
+
   /* ---------- クリア画面 ---------- */
 
   /* 集合画像が入ると 640px に収まらないのでスクロールさせる。
@@ -609,8 +614,10 @@
     <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
     <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
     <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
-    <div id="title-best">自己ベスト: ——</div>
-    <div id="title-titles">称号 0/16</div>
+    <div id="title-stats">
+      <span id="title-best">自己ベスト: ——</span>
+      <span id="title-titles">称号 0/16</span>
+    </div>
   </section>
 
   <!-- ゲーム画面 -->
