@@ -39,16 +39,11 @@
     --face-clear:  100px;   /* クリア画面のロスター */
     --face-profile: 96px;   /* 人物紹介のカード */
 
-    /* タイトルロゴ。幅を基準に、高さは画像の比率のまま伸びる。
-       --logo-h は保険の上限で、極端に縦長のロゴが来てもレイアウトが
-       壊れないようにするためのもの（通常はここに当たらない）。 */
-    --logo-w: 360px;
-    --logo-h: 200px;
 
     /* タイトル画面の縦積み要素の横幅。IME警告の文言が収まる幅を基準にしている。 */
     --title-control-w: 360px;
     /* その4要素の縦の間隔。ここ1箇所で等間隔が決まる。 */
-    --title-control-gap: 12px;
+    --title-control-gap: 24px;
   }
 
   * { box-sizing: border-box; }
@@ -110,14 +105,10 @@
     text-align: center;
   }
 
-  /* ロゴ。幅は固定、高さは比率のまま。縦長のロゴが来ても
-     max-height と contain で枠を超えない（レイアウトが破綻しない）。 */
-  #title-logo {
-    width: var(--logo-w);
-    height: auto;               /* 比率はそのまま */
-    max-height: var(--logo-h);
-    object-fit: contain;        /* 上限に当たった場合も比率を崩さない */
-    display: block;
+  #title-lead {
+    font-size: 18px;
+    margin: 0 0 14px;
+    opacity: 0.9;
   }
 
   #title-heading {
@@ -216,6 +207,74 @@
   }
   #title-best { opacity: 0.75; }
   #title-titles { color: var(--accent); opacity: 0.95; }
+
+  /* ---------- スタート画面 ---------- */
+
+  #screen-start {
+    justify-content: center;
+    cursor: pointer;
+    background: var(--bg);      /* start.png が無いときの下地 */
+  }
+
+  /* 背景は全面。画像が無ければ onerror で消え、下地の色だけが残る。 */
+  #start-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  #start-inner {
+    position: relative;         /* 背景より前に出す */
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;  /* 案内テキストは常に下端 */
+    height: 100%;
+    padding: 60px 0 48px;
+  }
+
+  /* 案内テキストの背後だけを暗くする（イラスト全体は暗くしない） */
+  #start-scrim {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 200px;
+    background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.45) 45%,
+      rgba(0, 0, 0, 0) 100%);
+    pointer-events: none;
+  }
+
+  /* 見出しが出るとき（＝背景画像なし）は上端へ。案内テキストは下端のまま。 */
+  #start-heading {
+    margin-bottom: auto;
+    font-size: 56px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-top: 0;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  }
+
+  #start-guide {
+    font-size: 19px;
+    letter-spacing: 0.04em;
+    color: #FFF3DC;
+    /* 輪郭用の濃い影と、にじみ用の広い影を重ねる */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95),
+                 0 0 14px rgba(0, 0, 0, 0.85);
+    animation: start-blink 2s ease-in-out infinite;
+  }
+
+  @keyframes start-blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.25; }
+  }
 
   /* ---------- 人物紹介 ---------- */
 
@@ -646,10 +705,20 @@
 
 <div id="stage">
 
+  <!-- スタート画面（起動時の1枚目） -->
+  <section class="screen" id="screen-start">
+    <img id="start-bg" src="assets/start.jpeg" alt="">
+    <div id="start-scrim"></div>
+    <div id="start-inner">
+      <h1 id="start-heading" hidden></h1>
+      <div id="start-guide">クリックまたはキーを押してスタート</div>
+    </div>
+  </section>
+
   <!-- タイトル画面 -->
   <section class="screen" id="screen-title">
-    <img id="title-logo" src="assets/logo.png" alt="">
-    <h1 id="title-heading" hidden></h1>
+    <h1 id="title-heading"></h1>
+    <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
     <div id="title-roster"></div>
     <div id="title-controls">
       <button class="btn" id="btn-start">はじめる（Enter）</button>
@@ -845,7 +914,7 @@ const CHARACTERS = [
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: null, profileText: "", entryLine: "株クラ四天王が一人闇の王にむしここに参る", defeatLine: "この私に勝つとは...", victoryLine: "強さって罪だよねー" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: null, profileText: "", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: null, profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: null, profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
@@ -1295,6 +1364,18 @@ function fadeInBgm() {
   }, BGM_FADE_STEP_MS);
 }
 
+/**
+ * 鳴っている効果音をすべて止める。画面が切り替わるときに使う。
+ * BGMは別管理（audio.bgmEls）なので、ここでは触らない。
+ */
+function stopAllSe() {
+  Object.keys(audio.pools).forEach(src => {
+    audio.pools[src].els.forEach(el => {
+      try { el.pause(); el.currentTime = 0; } catch (e) { /* 無視 */ }
+    });
+  });
+}
+
 function stopBgmElement() {
   clearInterval(audio.bgmWatcher);
   audio.bgmWatcher = null;
@@ -1436,6 +1517,7 @@ function renderSoundToggle() {
 /* ---------- 画面遷移 ---------- */
 
 const SCREENS = {
+  start:   document.getElementById("screen-start"),
   title:   document.getElementById("screen-title"),
   profile: document.getElementById("screen-profile"),
   intro:  document.getElementById("screen-intro"),
@@ -1516,21 +1598,41 @@ document.getElementById("title-heading").textContent = TITLE;
 document.title = TITLE;
 
 /** ロゴが無い（読み込めない）ときは TITLE から作ったテキスト見出しに切り替える。 */
-(function setupLogo() {
-  const img     = document.getElementById("title-logo");
-  const heading = document.getElementById("title-heading");
-  img.alt = TITLE;
+(function setupStartScreen() {
+  const heading = document.getElementById("start-heading");
+  const bg      = document.getElementById("start-bg");
+  const scrim   = document.getElementById("start-scrim");
 
-  img.addEventListener("load", () => {
-    img.hidden = false;
+  heading.textContent = TITLE;
+  bg.alt = TITLE;
+
+  // 背景イラストにロゴが入っているので、読み込めたときは見出しを出さない
+  bg.addEventListener("load", () => {
+    bg.hidden = false;
+    scrim.hidden = false;
     heading.hidden = true;
   });
 
-  img.addEventListener("error", () => {
-    img.hidden = true;
+  // 読み込めないときは下地の色だけになるので、テキスト見出しで成立させる
+  bg.addEventListener("error", () => {
+    bg.hidden = true;
+    scrim.hidden = true;
     heading.hidden = false;
   });
 })();
+
+/** スタート画面を抜けてタイトルへ。ここが音の解禁ポイント。 */
+function leaveStartScreen() {
+  if (currentScreen !== "start") return;
+  unlockAudio();               // クリック／キー入力はユーザー操作として扱われる
+  enterTitle();
+}
+
+/** タイトル画面へ入る。BGMはここで鳴り始める。 */
+function enterTitle() {
+  playBgm(AUDIO.bgm.title);
+  showScreen("title");
+}
 
 function buildTitleRoster() {
   const box = document.getElementById("title-roster");
@@ -1566,13 +1668,15 @@ document.getElementById("btn-start").addEventListener("click", () => {
   startGame();
 });
 
+document.getElementById("screen-start").addEventListener("click", leaveStartScreen);
+
 document.getElementById("btn-profile").addEventListener("click", () => {
   showScreen("profile");        // タイトルBGMはそのまま鳴らし続ける
 });
 
 document.getElementById("btn-profile-back").addEventListener("click", () => {
   document.getElementById("screen-profile").scrollTop = 0;
-  showScreen("title");
+  showScreen("title");            // 人物紹介からの復帰。BGMはタイトルのまま鳴り続ける
 });
 document.getElementById("btn-replay").addEventListener("click", startGame);
 
@@ -1613,7 +1717,8 @@ document.getElementById("btn-share-clear").addEventListener("click", (e) => {
  * 誤操作を避けるためクリックからのみ呼ぶ（Enterでは発火させない）。
  */
 function restartFromTitle() {
-  stopTimer();                       // 戦闘中に押されてもタイマーは確実に止める
+  stopTimer();          // 戦闘中に押されてもタイマーは確実に止める
+  stopAllSe();          // 鳴りかけの効果音をタイトルへ持ち越さない
   clearTimeout(state.introTimer);
   clearTimeout(state.timeupTimer);
   clearTimeout(state.glowTimer);
@@ -1645,8 +1750,7 @@ function restartFromTitle() {
 
   renderBest();
   renderTitleCount();
-  playBgm(AUDIO.bgm.title);
-  showScreen("title");
+  enterTitle();
 }
 
 function startGame() {
@@ -1808,7 +1912,8 @@ function onSpellCompleted() {
 /** 6-4. Enter 待ち。X共有を押す時間が必要なので自動では進めない。 */
 function showDefeat() {
   stopBgm();
-  playSe(AUDIO.se.defeat);
+  stopAllSe();              // 警告音などが残らないよう、先に止める
+  playSe(AUDIO.se.defeat);  // そのうえで遷移先の音を鳴らす
 
   const chara = state.order[state.stageIndex];
 
@@ -1893,6 +1998,7 @@ function renderTip() {
 
 function showClear() {
   stopBgm();
+  stopAllSe();              // 先に止めてから
   playSe(AUDIO.se.clear);
 
   document.getElementById("clear-time").textContent     = formatTime(state.totalMs);
@@ -2279,6 +2385,7 @@ function tick() {
 function onTimeUp() {
   stopTimer();
   stopBgm();
+  stopAllSe();              // 先に止めてから
   playSe(AUDIO.se.timeup);
   state.timeoutCount++;
 
@@ -2370,6 +2477,13 @@ function handleTyping(key) {
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+  if (currentScreen === "start") {
+    // どのキーでも先へ進む。打鍵判定には一切回さない。
+    e.preventDefault();
+    leaveStartScreen();
+    return;
+  }
+
   if (currentScreen === "title") {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -2448,13 +2562,12 @@ function syncOgpTags() {
 syncOgpTags();
 audio.enabled = loadSoundSetting();
 renderSoundToggle();
-playBgm(AUDIO.bgm.title);   // 解禁前は予約されるだけで鳴らない
 buildTitleRoster();
 buildClearRoster();
 buildProfileCards();
 renderBest();
 renderTitleCount();
-showScreen("title");
+showScreen("start");   // 起動時はスタート画面。ここでの操作で音が解禁される
 </script>
 
 </body>
