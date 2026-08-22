@@ -938,9 +938,20 @@ const HASHTAGS = ["#株クラTPG"];
 const BGM_VOLUME = 0.2;   // BGMは控えめに。効果音を聞き取りやすくするため
 const SE_VOLUME  = 1.2;   // 効果音の既定音量
 
+/** タイトル画面の背景。cleared が無ければ normal に落ちる。 */
+const TITLE_BG = {
+  normal:  "assets/title_bg.jpeg",
+  cleared: "assets/title_bg_cleared.jpeg",
+};
+
 const AUDIO = {
   bgm: {
-    title: "assets/bgm_title.mp3",
+    /* クリア前後で差し替える。cleared が null なら normal を使う。
+       文字列や { src, ... } を直接書いた場合は、クリア状況にかかわらずそれを使う。 */
+    title: {
+      normal:  { src: "assets/bgm_title.mp3",         loopStart: 0, volume: 0.4 },
+      cleared: { src: "assets/bgm_title_cleared.mp3", loopStart: 0, volume: 0.4 },
+    },
     /* stage は文字列でも、イントロ付きのオブジェクトでも書ける。
          "assets/xxx.mp3"
          { src: "assets/xxx.mp3", loopStart: 12.5, loopEnd: 23.0, volume: 0.8 }
@@ -951,7 +962,7 @@ const AUDIO = {
     stage: {
       micchan:   "assets/micchan.wav",
       nimushi:  "assets/nimushi.mp3",
-      nempan:   "assets/nempan.wav",
+      nempan:   "assets/nempan_test.mp3",   // ループ確認用に一時差し替え（元: nempan.wav）
       ponkotsu: "assets/ponkotsu.mp3",
     },
   },
@@ -1706,13 +1717,70 @@ document.title = TITLE;
 })();
 
 /** タイトルの背景。読み込めなければ画像とオーバーレイを消し、下地の色に戻す。 */
+/** 一度でもクリアしていれば true（保存データから毎回読む） */
+function isCleared() {
+  return loadProgress().clearCount >= 1;
+}
+
+/** 読み込みに失敗した背景画像。同じものを何度も取りに行かない。 */
+const titleBgBroken = {};
+
+/** いま使うべき背景画像のパス */
+function titleBgSrc() {
+  const cleared = TITLE_BG.cleared;
+  if (isCleared() && cleared && !titleBgBroken[cleared]) return cleared;
+  const normal = TITLE_BG.normal;
+  return (normal && !titleBgBroken[normal]) ? normal : "";
+}
+
+/** いま使うべきタイトルBGM。文字列や { src } をそのまま書いた場合はそれを使う（後方互換）。 */
+function titleBgmEntry() {
+  const t = AUDIO.bgm ? AUDIO.bgm.title : null;
+  if (!t) return null;
+  if (typeof t === "string" || typeof t.src === "string") return t;
+
+  const cleared = isCleared() ? t.cleared : null;
+  return cleared || t.normal || null;
+}
+
+/** タイトルに入るたびに背景を選び直す */
+function applyTitleBackground() {
+  const bg    = document.getElementById("title-bg");
+  const scrim = document.getElementById("title-scrim");
+  const want  = titleBgSrc();
+
+  if (!want) {                       // どちらも使えない → 背景色だけ
+    bg.hidden = true;
+    scrim.hidden = true;
+    return;
+  }
+  if (bg.getAttribute("src") === want) {
+    bg.hidden = false;               // 同じ画像なら読み込み直さない
+    scrim.hidden = false;
+    return;
+  }
+  bg.src = want;
+}
+
 (function setupTitleBg() {
   const bg    = document.getElementById("title-bg");
   const scrim = document.getElementById("title-scrim");
 
   bg.alt = "";
-  bg.addEventListener("load",  () => { bg.hidden = false; scrim.hidden = false; });
-  bg.addEventListener("error", () => { bg.hidden = true;  scrim.hidden = true;  });
+  bg.addEventListener("load", () => { bg.hidden = false; scrim.hidden = false; });
+
+  bg.addEventListener("error", () => {
+    const failed = bg.getAttribute("src");
+    if (failed) titleBgBroken[failed] = true;
+
+    const next = titleBgSrc();       // クリア済み版が無ければ通常版へ落ちる
+    if (next && next !== failed) {
+      bg.src = next;
+      return;
+    }
+    bg.hidden = true;
+    scrim.hidden = true;
+  });
 })();
 
 /** スタート画面を抜けてタイトルへ。ここが音の解禁ポイント。 */
@@ -1724,7 +1792,8 @@ function leaveStartScreen() {
 
 /** タイトル画面へ入る。BGMはここで鳴り始める。 */
 function enterTitle() {
-  playBgm(AUDIO.bgm.title);
+  applyTitleBackground();      // クリア状況で背景を選び直す
+  playBgm(titleBgmEntry());    // BGMも同様
   showScreen("title");
 }
 
