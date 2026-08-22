@@ -572,7 +572,7 @@
   }
 
   #clear-tip {
-    max-width: 560px;
+    max-width: 620px;
     padding: 12px 24px;
     text-align: center;
     background: var(--panel);
@@ -593,6 +593,14 @@
     font-size: 15px;
     line-height: 1.6;
     opacity: 0.9;
+  }
+  /* 補足は本文より一段弱く見せる（小さめ＋薄め） */
+  #clear-tip-note {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    opacity: 0.62;
   }
 
   #clear-score {
@@ -755,6 +763,7 @@
       <div id="clear-tip-head">💡 今回の豆知識</div>
       <div id="clear-tip-word"></div>
       <div id="clear-tip-desc"></div>
+      <div id="clear-tip-note"></div>
     </div>
 
     <img id="finale-img" class="finale" src="assets/finale.jpg" alt="">
@@ -796,8 +805,13 @@ const HASHTAGS = ["#株クラTPG"];
 const AUDIO = {
   bgm: {
     title: "assets/bgm_title.mp3",
+    /* stage は文字列でも、イントロ付きのオブジェクトでも書ける。
+         "assets/xxx.mp3"
+         { src: "assets/xxx.mp3", loopStart: 12.5, volume: 0.8 }
+       loopStart は2周目以降の開始位置（秒／省略時0＝曲全体をループ）、
+       volume は音量（省略時1.0）。 */
     stage: {
-      micchan:  null,
+      micchan:   null,
       nimushi:  null,
       nempan:   null,
       ponkotsu: null,
@@ -810,6 +824,9 @@ const AUDIO = {
     defeat:  "assets/se_defeat.mp3",   // プレイヤーが勝ったとき
     timeup:  "assets/se_timeup.mp3",   // プレイヤーが負けたとき
     clear:   "assets/se_clear.mp3",
+    warning:   "assets/se_warning.mp3",   // 残り10秒を切った瞬間（1ステージにつき1回）
+    finalIntro:  "assets/se_final_intro.mp3",   // 4人目の登場演出の冒頭（暗転と同時）
+    finalSlash: "assets/se_final_slash.mp3",   // 4人目の登場演出の終盤（相手が出るところ）
   },
 };
 
@@ -899,21 +916,150 @@ const SPELL_TIERS = [
 /* クリア画面で1語だけ出す用語解説。SPELL_TIERS とは独立していて、
    ここを増やしても出題内容には影響しない。用語とその説明のみに留めること。 */
 const TIPS = [
-  { word: "COMPOUND",            ja: "複利",             desc: "利息が元本に組み込まれ、その利息にもまた利息がつく仕組み" },
-  { word: "DIVIDEND",            ja: "配当",             desc: "企業が利益の一部を株主に分配するお金" },
-  { word: "INDEX",               ja: "指数",             desc: "市場全体の値動きを1つの数値にまとめたもの。日経平均やS&P500など" },
-  { word: "VOLATILITY",          ja: "変動率",           desc: "価格の振れ幅の大きさを表す指標" },
-  { word: "DRAWDOWN",            ja: "最大下落率",       desc: "資産が最高値からどこまで下がったかを示す幅" },
-  { word: "NISA",                ja: "ニーサ",           desc: "日本の少額投資非課税制度。制度の枠内では運用益に税金がかからない" },
-  { word: "IDECO",               ja: "イデコ",           desc: "個人型確定拠出年金。掛金を自分で運用し、原則60歳以降に受け取る制度" },
-  { word: "EXPENSE RATIO",       ja: "信託報酬",         desc: "投資信託を保有している間、運用会社などに支払う年率のコスト" },
-  { word: "DIVERSIFICATION",     ja: "分散投資",         desc: "投資先を複数に分けて、値動きの偏りを抑える考え方" },
-  { word: "BEAR MARKET",         ja: "下落相場",         desc: "相場が下降傾向にある局面。熊が爪を振り下ろす動きが語源とされる" },
-  { word: "BULL MARKET",         ja: "上昇相場",         desc: "相場が上昇傾向にある局面。雄牛が角を突き上げる動きが語源とされる" },
-  { word: "DOLLAR COST AVERAGE", ja: "ドルコスト平均法", desc: "一定額を定期的に買い付ける方法。価格が高いときは少なく、安いときは多く買うことになる" },
-  { word: "TOTAL RETURN",        ja: "総合収益",         desc: "値上がり益と配当などを合わせた、全体としての収益" },
-  { word: "BLUE CHIP",           ja: "優良株",           desc: "業績や財務が安定した大企業の株式を指す呼び名。ポーカーの高額チップが語源" },
-  { word: "EMERGENCY FUND",      ja: "生活防衛資金",     desc: "急な出費や収入減に備えて、現金で置いておくお金" },
+  { word: "INDEX", ja: "指数",
+    desc: "株式市場全体の動きをまとめて見るための数字。日経平均やS&P500が有名です。",
+    note: "個別株だけでなく指数も見ると、「その株だけ弱いのか、市場全体が弱いのか」が分かりやすくなります。" },
+  { word: "YIELD", ja: "利回り",
+    desc: "投資した金額に対して、どのくらい利益がもらえるかを見る割合です。",
+    note: "利回りが高いほど良いとは限らないので、「なぜ高いのか」まで見るのが大事です。" },
+  { word: "HOLD", ja: "保有",
+    desc: "買った株や投資信託を売らずに、そのまま持っていることです。",
+    note: "長く持つほど良いわけではなく、「持ち続ける理由が今もあるか」は定期的に確認したいところです。" },
+  { word: "RISK", ja: "リスク",
+    desc: "投資したお金が思った通りに増えなかったり、減ったりする可能性のことです。",
+    note: "投資では「危険」という意味だけでなく、値動きの大きさとして使われることもあります。" },
+  { word: "BONDS", ja: "債券",
+    desc: "国や企業にお金を貸して、その代わりに利息などを受け取る金融商品です。",
+    note: "一般的に株式より値動きが穏やかなので、資産全体のブレを抑えるためにも使われます。" },
+  { word: "NISA", ja: "ニーサ",
+    desc: "投資で増えた利益に税金がかからなくなる、とてもありがたい制度です。",
+    note: "通常なら利益や配当にかかる税金が、NISAではかからなくなるので、長期投資との相性がかなり良いです。" },
+  { word: "CASH", ja: "現金",
+    desc: "すぐに使えるお金のこと。全部投資せず、現金を残しておくのも大切です。",
+    note: "相場が大きく下がったときに買える余力になるので、現金も立派な投資戦略です。" },
+  { word: "TREND", ja: "相場の流れ",
+    desc: "株価が上がっているのか、下がっているのか。相場がどちらに向かっているかという流れです。",
+    note: "良い企業でも下落トレンド中は株価が下がることがあるので、企業と相場の両方を見ると分かりやすいです。" },
+  { word: "STOCK", ja: "株式",
+    desc: "企業が発行しているもの。買うことで、その企業の株主になることができます。",
+    note: "株を買うということは、値動きを買うだけでなく、その会社の一部を持つことでもあります。" },
+  { word: "GROWTH", ja: "成長",
+    desc: "これから売上や利益がどんどん伸びていきそう、という成長性のことです。",
+    note: "成長期待が高い会社ほど株価にも期待が織り込まれやすいので、良い会社＝必ず割安ではありません。" },
+  { word: "VALUE", ja: "割安",
+    desc: "企業の実力に比べて、今の株価が安そうだと考えられる状態です。",
+    note: "安い理由がある場合もあるので、「割安なのか、ただ人気がないのか」は分けて考えたいです。" },
+  { word: "IDECO", ja: "イデコ",
+    desc: "自分で老後のお金を積み立てながら運用する制度。税金面でのメリットもあります。",
+    note: "節税メリットは大きいですが、原則として老後まで引き出しにくい点はNISAとの大きな違いです。" },
+  { word: "DIVIDEND", ja: "配当",
+    desc: "企業が稼いだ利益の一部を、株主に還元してくれるお金です。",
+    note: "配当額だけでなく、「毎年増えているか」「無理して払っていないか」も見ると企業の姿勢が分かります。" },
+  { word: "COMPOUND", ja: "複利",
+    desc: "投資で増えたお金もさらに投資して、利益が利益を生んでいく仕組みです。",
+    note: "複利は期間が長いほど力を発揮するので、早く始めること自体が大きな武器になります。" },
+  { word: "DRAWDOWN", ja: "最大下落率",
+    desc: "一番高かったところから、どこまで大きく下がったのかを見る数字です。",
+    note: "リターンだけでなく最大下落率も見ると、「自分が耐えられる投資か」がかなり分かりやすくなります。" },
+  { word: "PORTFOLIO", ja: "資産配分",
+    desc: "自分がどんな株や投資信託、現金などを持っているか、その組み合わせのことです。",
+    note: "似た銘柄ばかり持っていると、数が多くても実はあまり分散できていないことがあります。" },
+  { word: "BEAR MARKET", ja: "下落相場",
+    desc: "株価が全体的に下がり続けている、ちょっと元気のない相場です。",
+    note: "下落相場では良い企業まで一緒に売られることがあるので、長期目線ではチャンスになる場合もあります。" },
+  { word: "BULL MARKET", ja: "上昇相場",
+    desc: "株価が全体的に上がり続けている、勢いのある相場です。",
+    note: "上昇相場では何を買っても上がるように見えやすいので、強気になりすぎないのも大切です。" },
+  { word: "VOLATILITY", ja: "変動率",
+    desc: "株価がどのくらい激しく上がったり下がったりするかを見るものです。",
+    note: "値動きが大きい銘柄ほど利益のチャンスもありますが、損失も大きくなりやすいです。" },
+  { word: "LONG TERM", ja: "長期",
+    desc: "今日明日の値動きではなく、数年や数十年先まで考えて投資することです。",
+    note: "長期投資でも、買った理由や企業の成長ストーリーが崩れていないかの確認は必要です。" },
+  { word: "BLUE CHIP", ja: "優良株",
+    desc: "業績や財務が比較的安定していて、多くの人に知られている大企業の株です。",
+    note: "優良企業でも買う価格が高すぎるとリターンが伸びにくいので、株価水準も大切です。" },
+  { word: "RECESSION", ja: "景気後退",
+    desc: "景気が悪くなって、企業活動や消費が少しずつ弱くなっていく状態です。",
+    note: "景気後退では業種によって強弱が分かれやすいので、セクターを見るきっかけにもなります。" },
+  { word: "INFLATION", ja: "物価上昇",
+    desc: "いろいろな物の値段が上がって、同じお金で買える量が少なくなっていくことです。",
+    note: "現金だけで持っていると実質的な価値が目減りすることがあるため、投資が注目される理由の一つです。" },
+  { word: "INDEX FUND", ja: "指数連動投信",
+    desc: "S&P500などの指数と、だいたい同じ値動きを目指して運用する投資信託です。",
+    note: "同じ指数に連動する商品でも信託報酬が違うので、長期ならコスト比較がかなり大事です。" },
+  { word: "TOTAL RETURN", ja: "総合収益",
+    desc: "株価の値上がりだけでなく、配当なども全部合わせてどのくらい増えたかを見るものです。",
+    note: "高配当株と成長株を比べるときは、株価だけよりTOTAL RETURNで見た方が公平です。" },
+  { word: "CAPITAL GAINS", ja: "売却益",
+    desc: "買ったときより高い値段で売って得られた利益のことです。",
+    note: "売るまでは含み益なので、実際に利益が確定するのは売却したときです。" },
+  { word: "MARKET TIMING", ja: "売買タイミング",
+    desc: "今が買い時なのか、売り時なのか。相場を見ながらタイミングを考えることです。",
+    note: "完璧な底値や天井を当てるのは難しいので、時間を分けて買う方法もよく使われます。" },
+  { word: "EXPENSE RATIO", ja: "信託報酬",
+    desc: "投資信託を持っている間にかかる運用コストです。長期投資では意外と大事です。",
+    note: "少しの差でも何十年と積み上がると差が広がるので、インデックス投資では特に要チェックです。" },
+  { word: "PROFIT TAKING", ja: "利益確定",
+    desc: "値上がりしている株を実際に売って、含み益を本当の利益にすることです。",
+    note: "全部売らずに一部だけ利確する方法なら、利益を確保しつつ上昇余地も残せます。" },
+  { word: "SHARPE RATIO", ja: "シャープレシオ",
+    desc: "どのくらいリスクを取って、どのくらい効率よく利益を出せたかを見る指標です。",
+    note: "単純なリターンだけでは分からない「効率の良さ」を比較したいときに便利です。" },
+  { word: "TAX DEFERRAL", ja: "課税繰延",
+    desc: "今払うはずの税金を、将来まで先送りできる仕組みです。",
+    note: "税金として出ていくはずのお金も運用に回せるので、長期では複利効果につながります。ただし、税金がなくなるわけではなく、将来受け取るときに課税される点は覚えておきたいところです。" },
+  { word: "RISK TOLERANCE", ja: "リスク許容度",
+    desc: "どのくらいの値下がりまでなら耐えられるか。人によってかなり違います。",
+    note: "年齢や収入だけでなく、実際に下落したとき眠れるかどうかも大事な判断材料です。" },
+  { word: "EMERGENCY FUND", ja: "生活防衛資金",
+    desc: "病気や失業など、何かあったときのために投資とは別で残しておくお金です。",
+    note: "これがあると相場下落時に生活費のために投資資産を売るリスクを減らせます。" },
+  { word: "ASSET ALLOCATION", ja: "資産配分",
+    desc: "株式、債券、現金などに、自分のお金をどのくらいずつ振り分けるかという考え方です。",
+    note: "投資成績は銘柄選びだけでなく、どの資産をどれくらい持つかにも大きく左右されます。" },
+  { word: "EMERGING MARKETS", ja: "新興国市場",
+    desc: "これから大きく成長する可能性がある、新興国の株式などが取引される市場です。",
+    note: "成長期待が高い一方で、政治や為替の影響も受けやすいので値動きは大きめです。" },
+  { word: "DIVERSIFICATION", ja: "分散投資",
+    desc: "一つだけに集中せず、いろいろな投資先に分けてリスクを減らす方法です。",
+    note: "銘柄だけでなく、業種・国・資産の種類まで分けると、より分散効果が高まりやすいです。" },
+  { word: "COMPOUND INTEREST", ja: "複利効果",
+    desc: "増えた利益にもさらに利益がついて、時間とともに資産が大きくなっていく効果です。",
+    note: "早く始めるほど効果が大きく、後半になるほど伸びが加速していくのが特徴です。" },
+  { word: "ALL COUNTRY INDEX", ja: "全世界株式",
+    desc: "日本や米国、新興国など、世界中の株式をまとめて対象にした指数です。代表的なものにMSCI ACWIがあります。",
+    note: "このような指数に連動する投資信託なら、一つの商品で地域分散しやすいので、「どの国が勝つか分からない」という人にも使いやすいです。" },
+  { word: "PASSIVE INVESTING", ja: "パッシブ運用",
+    desc: "相場に勝つことを狙うより、指数と同じくらいの成績を目指す運用方法です。",
+    note: "売買回数や運用コストを抑えやすいのが、大きなメリットです。" },
+  { word: "LONG TERM HOLDING", ja: "長期保有",
+    desc: "買った株などをすぐには売らず、長い時間をかけて持ち続けることです。",
+    note: "短期の値動きに振り回されにくくなり、複利も活かしやすくなります。" },
+  { word: "FINANCIAL FREEDOM", ja: "経済的自由",
+    desc: "資産からの収入などで生活できて、お金のために働く必要が少なくなった状態です。",
+    note: "必要な資産額は人によって違うので、まず年間生活費を知るところから始まります。" },
+  { word: "DOLLAR COST AVERAGE", ja: "ドルコスト平均法",
+    desc: "値段が高いときも安いときも、毎回同じ金額をコツコツ投資していく方法です。",
+    note: "価格が安いときには多く、高いときには少なく買うことになるので、初心者でも続けやすい方法です。" },
+  { word: "CAPITAL PRESERVATION", ja: "資産保全",
+    desc: "大きく増やすことよりも、まずは今ある資産を大きく減らさないことを優先する考え方です。",
+    note: "資産が大きくなるほど、「増やす」だけでなく「守る」という考え方も重要になってきます。" },
+  { word: "RISK MANAGEMENT", ja: "リスク管理",
+    desc: "大きな損失を避けるために、投資先や金額などを調整してリスクを管理することです。",
+    note: "何を買うかより先に、「どこまで損しても大丈夫か」を決めておくのも立派なリスク管理です。" },
+  { word: "PORTFOLIO BALANCE", ja: "資産配分の調整",
+    desc: "株が増えすぎた、現金が少なすぎるなど、偏った資産のバランスを整えることです。",
+    note: "値上がりした資産を少し減らし、減った資産を増やすことで、元の配分に戻す方法もあります。" },
+  { word: "MARKET CORRECTION", ja: "相場の調整局面",
+    desc: "ずっと上がっていた相場が、一度少し下がって落ち着くような場面です。",
+    note: "調整は必ずしも悪材料ではなく、上がりすぎた相場が一度冷静になる動きでもあります。" },
+  { word: "INVESTMENT HORIZON", ja: "投資期間",
+    desc: "そのお金をいつまで投資しておく予定なのか、という期間のことです。",
+    note: "使う時期が近いお金ほど、大きなリスクを取りすぎない方が安心です。" },
+  { word: "INDEX FUND INVESTING", ja: "インデックス投資",
+    desc: "指数に連動する投資信託などを使って、市場全体にコツコツ投資していく方法です。",
+    note: "銘柄選びの手間を減らしながら、低コストで幅広く分散しやすいのが強みです。" },
 ];
 
 /* 称号（本体）。クリアタイムが maxMs 未満のうち、いちばん条件の厳しいものが付く。
@@ -1041,15 +1187,29 @@ function renderFace(el, chara, variant) {
 const audio = {
   enabled: false,    // 音を鳴らす設定。既定は OFF
   unlocked: false,   // 最初のユーザー操作で true（ブラウザの自動再生制限の解除）
-  bgm: null,         // 再生中の Audio
-  bgmSrc: null,      // 鳴らしたい曲。解禁前・OFF中でも覚えておく
+  bgmEls: null,      // 同じ曲の Audio を2つ。交互に鳴らして継ぎ目をなくす
+  bgmIndex: 0,       // いま鳴っている方（0 or 1）
+  bgmWatcher: null,  // 終端監視の setInterval
+  bgmWant: null,     // 鳴らしたい曲（正規化済み）。解禁前・OFF中でも覚えておく
   bgmCurrent: null,  // いま鳴らしている曲の src
+  bgmLoopStart: 0,   // 2周目以降の開始位置（秒）
+  bgmVolume: 1,      // その曲の設定音量
+  fadeTimer: null,   // フェードインの setInterval
   pools: {},         // 効果音のプール src -> { els, next }
   broken: {},        // 読み込みに失敗した src。以後は試さない
 };
 
 /** 同じ効果音を重ねて鳴らせる数。打鍵音が連打されても詰まらないようにする。 */
 const SE_POOL_SIZE = 4;
+
+/* BGMの継ぎ目対策。<audio loop> は末尾→先頭で数十msの無音が入るため、
+   同じ音源の Audio を2つ用意し、終端の少し手前でもう片方を頭から鳴らす。 */
+const BGM_WATCH_MS   = 50;   // 終端監視の間隔（timeupdate は粗いので setInterval で見る）
+const BGM_OVERLAP_MS = 80;   // 次を鳴らし始めるタイミング（終端の何ms手前か）
+
+/* 戦闘開始時のフェードイン。Web Audio は使わず volume を段階的に上げる。 */
+const BGM_FADE_MS      = 500;
+const BGM_FADE_STEP_MS = 25;
 
 /** play() の失敗は握りつぶす（未配置ファイル・自動再生制限のどちらでも落とさない） */
 function playSafely(el) {
@@ -1068,6 +1228,23 @@ function makeAudio(src, loop) {
   el.addEventListener("error", () => { audio.broken[src] = true; });
   el.src = src;
   return el;
+}
+
+/**
+ * BGMの指定を { src, loopStart, volume } に揃える。
+ * 文字列で書かれていた場合も受け付ける（後方互換）。
+ */
+function normalizeBgm(entry) {
+  if (!entry) return null;
+  if (typeof entry === "string") return { src: entry, loopStart: 0, volume: 1 };
+  if (typeof entry.src !== "string" || !entry.src) return null;
+
+  const loopStart = (typeof entry.loopStart === "number" && isFinite(entry.loopStart) && entry.loopStart > 0)
+    ? entry.loopStart : 0;
+  const volume = (typeof entry.volume === "number" && isFinite(entry.volume))
+    ? Math.min(1, Math.max(0, entry.volume)) : 1;
+
+  return { src: entry.src, loopStart, volume };
 }
 
 function canPlay(src) {
@@ -1091,33 +1268,141 @@ function playSe(src) {
   playSafely(el);
 }
 
+function setBgmVolume(v) {
+  if (!audio.bgmEls) return;
+  audio.bgmEls.forEach(el => {
+    try { el.volume = Math.min(1, Math.max(0, v)); } catch (e) { /* 無視 */ }
+  });
+}
+
+/** 0 → 設定音量へ 0.5秒かけて上げる。切り替え中の2要素どちらにも効かせる。 */
+function fadeInBgm() {
+  clearInterval(audio.fadeTimer);
+
+  const target = audio.bgmVolume;
+  const steps = Math.max(1, Math.round(BGM_FADE_MS / BGM_FADE_STEP_MS));
+  let step = 0;
+
+  setBgmVolume(0);
+  audio.fadeTimer = setInterval(() => {
+    step++;
+    setBgmVolume(target * step / steps);
+    if (step >= steps) {
+      clearInterval(audio.fadeTimer);
+      audio.fadeTimer = null;
+      setBgmVolume(target);
+    }
+  }, BGM_FADE_STEP_MS);
+}
+
 function stopBgmElement() {
-  if (!audio.bgm) return;
-  try { audio.bgm.pause(); audio.bgm.currentTime = 0; } catch (e) { /* 無視 */ }
-  audio.bgm = null;
+  clearInterval(audio.bgmWatcher);
+  audio.bgmWatcher = null;
+  clearInterval(audio.fadeTimer);
+  audio.fadeTimer = null;
+
+  if (audio.bgmEls) {
+    audio.bgmEls.forEach(el => {
+      try { el.pause(); el.currentTime = 0; } catch (e) { /* 無視 */ }
+    });
+  }
+  audio.bgmEls = null;
+  audio.bgmIndex = 0;
   audio.bgmCurrent = null;
+}
+
+/**
+ * 終端の手前まで来たら、もう片方を頭から鳴らす。
+ * 前の要素は重なりぶんだけ鳴らしたまま自然に終わらせる（＝無音が入らない）。
+ */
+/** 2周目以降の開始位置。曲より後ろを指していたら先頭に倒す。 */
+function loopStartFor(el) {
+  const dur = el && el.duration;
+  const ls = audio.bgmLoopStart;
+  if (!(ls > 0)) return 0;
+  if (dur && isFinite(dur) && ls >= dur) return 0;
+  return ls;
+}
+
+/**
+ * 待機側を loopStart まで事前にシークしておく。
+ * 切り替えの瞬間に play() を呼ぶだけで済み、シーク待ちのラグが出ない。
+ */
+function prepareStandby(el) {
+  if (!el) return;
+  el._prepared = false;
+
+  const seek = () => {
+    const from = loopStartFor(el);
+    if (Math.abs(el.currentTime - from) < 0.01) {   // すでにその位置なら何もしない
+      el._prepared = true;
+      return;
+    }
+    const onSeeked = () => {
+      el._prepared = true;
+      el.removeEventListener("seeked", onSeeked);
+    };
+    el.addEventListener("seeked", onSeeked);
+    try { el.currentTime = from; } catch (e) { /* あとで保険側が拾う */ }
+  };
+
+  // メタデータ待ちの場合は読み込めてからシークする
+  if (el.readyState >= 1) seek();
+  else el.addEventListener("loadedmetadata", seek, { once: true });
+}
+
+function bgmTick() {
+  if (!audio.bgmEls) return;
+
+  const cur = audio.bgmEls[audio.bgmIndex];
+  const dur = cur.duration;
+  if (!dur || !isFinite(dur)) return;          // メタデータがまだ来ていない
+  if (cur.currentTime < dur - BGM_OVERLAP_MS / 1000) return;
+
+  // 待機側は事前にシーク済み。ここでは鳴らすだけ。
+  const next = audio.bgmEls[1 - audio.bgmIndex];
+  if (!next._prepared) {                       // 保険（シークが間に合わなかった場合）
+    try { next.currentTime = loopStartFor(next); } catch (e) { /* 無視 */ }
+  }
+  playSafely(next);
+  audio.bgmIndex = 1 - audio.bgmIndex;
 }
 
 /** BGMを止め、鳴らしたい曲も忘れる（撃破・時間切れ・クリア画面用） */
 function stopBgm() {
-  audio.bgmSrc = null;
+  audio.bgmWant = null;
   stopBgmElement();
 }
 
 /** BGM。同じ曲なら鳴らし直さない（ステージ内でぶつ切りにならないように）。 */
-function playBgm(src) {
-  audio.bgmSrc = src || null;
+function playBgm(entry) {
+  const want = normalizeBgm(entry);
+  audio.bgmWant = want;
 
-  if (!canPlay(audio.bgmSrc)) {
+  if (!want || !canPlay(want.src)) {
     stopBgmElement();   // OFF・解禁前・ファイル無しは無音。予約だけ残す
     return;
   }
-  if (audio.bgm && audio.bgmCurrent === audio.bgmSrc && !audio.bgm.paused) return;
+  const playing = audio.bgmEls && audio.bgmEls.some(el => !el.paused);
+  if (playing && audio.bgmCurrent === want.src) return;
 
   stopBgmElement();
-  audio.bgmCurrent = audio.bgmSrc;
-  audio.bgm = makeAudio(audio.bgmSrc, true);
-  playSafely(audio.bgm);
+  audio.bgmCurrent   = want.src;
+  audio.bgmLoopStart = want.loopStart;
+  audio.bgmVolume    = want.volume;
+
+  // loop は使わない。2つを交互に鳴らして継ぎ目を埋める。
+  audio.bgmEls = [makeAudio(want.src, false), makeAudio(want.src, false)];
+  audio.bgmIndex = 0;
+
+  // 鳴り終わった要素は、次の出番に備えてすぐ loopStart へ巻き戻す
+  // （しっぽを鳴らし切ってからなので、再生中の音は切らない）
+  audio.bgmEls.forEach(el => el.addEventListener("ended", () => prepareStandby(el)));
+
+  playSafely(audio.bgmEls[0]);            // 1周目は先頭（イントロ）から
+  prepareStandby(audio.bgmEls[1]);        // 待機側は先に loopStart へ寄せておく
+  fadeInBgm();                   // 登場演出が無音なので、唐突に始まらないよう立ち上げる
+  audio.bgmWatcher = setInterval(bgmTick, BGM_WATCH_MS);
 }
 
 /** キャラIDで曲を引く。配列で書かれている場合は CHARACTERS の定義順で引く。 */
@@ -1131,14 +1416,14 @@ function bgmFor(chara) {
 function unlockAudio() {
   if (audio.unlocked) return;
   audio.unlocked = true;
-  if (audio.bgmSrc) playBgm(audio.bgmSrc);   // 解禁前に予約していた曲を鳴らす
+  if (audio.bgmWant) playBgm(audio.bgmWant);   // 解禁前に予約していた曲を鳴らす
 }
 
 function setSoundEnabled(on) {
   audio.enabled = !!on;
   saveSoundSetting(audio.enabled);
   renderSoundToggle();
-  if (audio.enabled) playBgm(audio.bgmSrc);
+  if (audio.enabled) playBgm(audio.bgmWant);
   else stopBgmElement();                     // OFF は完全に無音。予約は残す
 }
 
@@ -1207,6 +1492,7 @@ const state = {
   imeTimer: null,
   penaltyTimer: null,
   penaltyMs: 0,        // このステージで積んだ減点。経過時間そのものは増やさない
+  warned: false,       // 残り10秒の警告音を鳴らしたか（挑戦ごとにリセット）
   // タイマー
   limitMs: 0,          // このステージの制限時間
   segmentStart: null,  // 計測中の区間の開始時刻。止まっているときは null
@@ -1397,7 +1683,7 @@ function enterStage(index) {
   renderFace(document.getElementById("enemy-face"), chara);
 
   setupBattle(index);
-  playBgm(bgmFor(chara));   // 登場演出のうちから次の曲を鳴らし始める
+  stopBgm();                // 登場演出のあいだは無音。BGMは startBattle から
 
   // 3人撃破済みで4人目に入るときだけ「最後の相手」演出に差し替える。
   // 時間切れリトライは enterStage を通らないので、2回目以降は演出が入らない。
@@ -1442,9 +1728,15 @@ function showFinalIntro(chara) {
   void screen.offsetWidth;
   screen.classList.add("dark");
 
+  playSe(AUDIO.se.finalIntro);   // 暗転と同時
+
+  // 予約した音も finalTimers に入れるので、中断（最初から始める等）で確実に取り消される
   state.finalTimers = [
     setTimeout(() => head.classList.add("revealed"), FINAL_DARK_MS),
-    setTimeout(() => body.classList.add("revealed"), FINAL_DARK_MS + FINAL_HEAD_MS),
+    setTimeout(() => {
+      body.classList.add("revealed");
+      playSe(AUDIO.se.finalSlash);   // 相手が出るところ
+    }, FINAL_DARK_MS + FINAL_HEAD_MS),
     setTimeout(startBattle,                          FINAL_DARK_MS + FINAL_HEAD_MS + FINAL_ENTRY_MS),
   ];
 }
@@ -1460,6 +1752,7 @@ function setupBattle(index) {
   state.hp = state.maxHp;
   state.limitMs = STAGE_TIME_MS[index];
   state.penaltyMs = 0;      // 減点は挑戦ごとにリセットする
+  state.warned = false;     // 警告音も挑戦ごとに鳴らし直す
 
   // 何番手かで Tier が決まる。誰と戦うかは難易度に影響しない。
   // 先にシャッフルして前から取り出すことで、1戦の中で重複出題しない。
@@ -1588,6 +1881,13 @@ function renderTip() {
   const ja = tip.ja ? "（" + tip.ja + "）" : "";
   document.getElementById("clear-tip-word").textContent = (tip.word || "") + ja;
   document.getElementById("clear-tip-desc").textContent = tip.desc || "";
+
+  // 補足は空なら行ごと消す（余白だけ空くのを避ける）
+  const noteEl = document.getElementById("clear-tip-note");
+  const note = (typeof tip.note === "string") ? tip.note.trim() : "";
+  noteEl.textContent = note;
+  noteEl.hidden = !note;
+
   box.hidden = false;
 }
 
@@ -2013,7 +2313,14 @@ function renderFooter(restMs) {
   document.getElementById("hud-time").textContent = sec;
   document.getElementById("hud-combo").textContent = state.combo;
   document.getElementById("hud-accuracy").textContent = accuracyPercent();
-  document.getElementById("game-footer").classList.toggle("urgent", sec <= 10);
+  // 秒数が赤くなるのと同じタイミングで、警告音を1回だけ鳴らす
+  const urgent = sec <= 10;
+  document.getElementById("game-footer").classList.toggle("urgent", urgent);
+
+  if (urgent && !state.warned && currentScreen === "game" && state.segmentStart !== null) {
+    state.warned = true;
+    playSe(AUDIO.se.warning);
+  }
 }
 
 function renderSpell() {
