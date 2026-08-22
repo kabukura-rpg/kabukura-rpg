@@ -271,6 +271,19 @@
     animation: start-blink 2s ease-in-out infinite;
   }
 
+  /* クレジット。案内テキストとは別要素なので明滅の影響を受けない。 */
+  #start-credit {
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    z-index: 1;                 /* グラデーションより前 */
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.6;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+    pointer-events: none;       /* クリックはスタート画面側で拾う */
+  }
+
   @keyframes start-blink {
     0%, 100% { opacity: 1; }
     50%      { opacity: 0.25; }
@@ -713,6 +726,7 @@
       <h1 id="start-heading" hidden></h1>
       <div id="start-guide">クリックまたはキーを押してスタート</div>
     </div>
+    <div id="start-credit">© 株クラRPGメンバー</div>
   </section>
 
   <!-- タイトル画面 -->
@@ -914,7 +928,7 @@ const CHARACTERS = [
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: null, profileText: "", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: null, profileText: "ぼっちじゃないよーにむしだYO", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: null, profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: null, profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
