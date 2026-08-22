@@ -914,7 +914,7 @@ const AUDIO = {
     stage: {
       micchan:   "assets/micchan.wav",
       nimushi:  "assets/nimushi.mp3",
-      nempan:   "assets/nempan.mp3",
+      nempan:   { src: "assets/nempan.mp3", loopStart: 5.03 },
       ponkotsu: "assets/ponkotsu.mp3",
     },
   },
@@ -948,7 +948,7 @@ const CHARACTERS = [
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "メンタルは弱いけど積立だけは強制執行してます。タピオカは血液", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "四天王の闇担当。光属性が弱点。\nメンタルHPは常に瀕死ですが、積立だけは止まりません。", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: "assets/nempanx.jpeg", profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: "assets/ponkotsux.jpg", profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
@@ -1343,16 +1343,14 @@ function makeAudio(src, loop) {
  * volume は 0〜1 にクランプし、未指定なら既定値を使う。
  */
 function normalizeSound(entry, defaultVolume) {
-  // HTMLAudioElement の volume は 0〜1 しか受け付けない（超えると例外）。
-  // 個別指定でも既定値でも、必ずここを通してから使う。
-  const clamp = v => Math.min(1, Math.max(0, (typeof v === "number" && isFinite(v)) ? v : 1));
-
   if (!entry) return null;
-  if (typeof entry === "string") return { src: entry, volume: clamp(defaultVolume) };
+  if (typeof entry === "string") return { src: entry, volume: defaultVolume };
   if (typeof entry.src !== "string" || !entry.src) return null;
 
-  const raw = (typeof entry.volume === "number" && isFinite(entry.volume)) ? entry.volume : defaultVolume;
-  return { src: entry.src, volume: clamp(raw) };
+  const volume = (typeof entry.volume === "number" && isFinite(entry.volume))
+    ? Math.min(1, Math.max(0, entry.volume)) : defaultVolume;
+
+  return { src: entry.src, volume };
 }
 
 /** 効果音用。{ src, volume } か文字列。 */
@@ -1389,8 +1387,10 @@ function playSe(entry) {
 
   const el = pool.els[pool.next];
   pool.next = (pool.next + 1) % pool.els.length;
-  try { el.volume = want.volume; } catch (e) { /* 範囲外なら既定のまま鳴らす */ }
-  try { el.currentTime = 0; } catch (e) { /* まだ読み込めていないだけ */ }
+  try {
+    el.volume = want.volume;
+    el.currentTime = 0;
+  } catch (e) { /* まだ読み込めていないだけ */ }
   playSafely(el);
 }
 
