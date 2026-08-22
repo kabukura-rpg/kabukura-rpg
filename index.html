@@ -30,7 +30,6 @@
 
     /* キャラアイコンの表示サイズ。画像・絵文字どちらもこの寸法の箱に収まる。
        大きさを変えたいときはここだけ触ればよい。 */
-    --face-title:  120px;   /* タイトル画面の4人 */
     --face-game:   200px;   /* 戦闘中の相手 */
     --face-intro:  220px;   /* 登場演出 */
     --face-final:  220px;   /* 最後の相手 */
@@ -40,8 +39,10 @@
     --face-profile: 96px;   /* 人物紹介のカード */
 
 
-    /* タイトル画面の縦積み要素の横幅。IME警告の文言が収まる幅を基準にしている。 */
-    --title-control-w: 360px;
+    /* タイトル画面のボタン幅。背景イラストを隠しすぎないよう細めにする。 */
+    --title-control-w: 280px;
+    /* IME警告だけは文言が1行に収まる幅が必要なので別枠。 */
+    --title-warn-w: 344px;
     /* その4要素の縦の間隔。ここ1箇所で等間隔が決まる。 */
     --title-control-gap: 24px;
   }
@@ -84,7 +85,46 @@
 
   /* ---------- タイトル画面 ---------- */
 
-  #screen-title { justify-content: center; gap: 6px; }
+  /* 背景イラストを敷くので、要素を上下に散らして中央を見せる */
+  #screen-title {
+    justify-content: space-between;
+    padding: 34px 0 24px;
+  }
+
+  #title-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* 全体は軽く落とすだけにして、文字が乗る上下の帯だけ濃くする。
+     中央（イラストの見せ場）は 0.35 の薄いベールのみ。 */
+  #title-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.66) 0%, rgba(0, 0, 0, 0) 30%),
+      linear-gradient(to top,    rgba(0, 0, 0, 0.74) 0%, rgba(0, 0, 0, 0) 22%),
+      rgba(30, 24, 18, 0.35);
+    pointer-events: none;
+  }
+
+  /* 背景より前に出す */
+  #title-top,
+  #title-controls,
+  #title-stats {
+    position: relative;
+    z-index: 1;
+  }
+
+  #title-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
 
   /* 4要素は1つの入れ物に入れて、間隔を gap だけで決める
      （個別の margin が混ざると間隔がばらつくため）。 */
@@ -99,16 +139,24 @@
      高さはそれぞれの padding のままなので、主導線の「はじめる」は大きいまま。 */
   #btn-start,
   #btn-profile,
-  #title-ime,
   #btn-sound {
     width: var(--title-control-w);
     text-align: center;
   }
 
+  /* 警告は文言が折り返さないことを優先して、ボタンより広く取る */
+  #title-ime {
+    width: var(--title-warn-w);
+    text-align: center;
+    white-space: nowrap;
+  }
+
   #title-lead {
     font-size: 18px;
-    margin: 0 0 14px;
-    opacity: 0.9;
+    margin: 0;
+    color: #FFF3DC;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95),
+                 0 0 14px rgba(0, 0, 0, 0.85);
   }
 
   #title-heading {
@@ -117,19 +165,10 @@
     letter-spacing: 0.08em;
     color: var(--accent);
     margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95),
+                 0 0 18px rgba(0, 0, 0, 0.85);
   }
 
-  #title-roster {
-    display: flex;
-    gap: 44px;
-    margin-top: 10px;
-    margin-bottom: 14px;
-  }
-
-  .roster-member {
-    width: 130px;
-    text-align: center;
-  }
   /* キャラの顔。画像でも絵文字でも同じ寸法の箱に収めるので、
      混在しても高さが揃う。寸法は --face-size（:root の変数）で決まる。 */
   .face {
@@ -152,15 +191,6 @@
     border: 2px solid var(--border);
     border-radius: 8px;
     object-fit: cover;
-  }
-
-  .roster-face {
-    --face-size: var(--face-title);
-    margin: 0 auto;
-  }
-  .roster-name {
-    font-size: 15px;
-    margin-top: 6px;
   }
 
   .btn {
@@ -190,7 +220,7 @@
     font-family: inherit;
     font-size: 14px;
     color: var(--text);
-    background: transparent;
+    background: rgba(30, 24, 18, 0.62);   /* 背景イラストの上でも文字が読めるように */
     border: 1px solid var(--border);
     border-radius: 4px;
     cursor: pointer;
@@ -204,9 +234,11 @@
     align-items: baseline;
     gap: 22px;
     font-size: 14px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95),
+                 0 0 12px rgba(0, 0, 0, 0.8);
   }
-  #title-best { opacity: 0.75; }
-  #title-titles { color: var(--accent); opacity: 0.95; }
+  #title-best { color: #F0E2C6; }
+  #title-titles { color: var(--accent); }
 
   /* ---------- スタート画面 ---------- */
 
@@ -744,14 +776,17 @@
 
   <!-- タイトル画面 -->
   <section class="screen" id="screen-title">
-    <h1 id="title-heading"></h1>
-    <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
-    <div id="title-roster"></div>
+    <img id="title-bg" src="assets/title_bg.jpeg" alt="">
+    <div id="title-scrim"></div>
+    <div id="title-top">
+      <h1 id="title-heading"></h1>
+      <p id="title-lead">投資の呪文を詠唱して、4人に挑戦しよう</p>
+    </div>
     <div id="title-controls">
       <button class="btn" id="btn-start">はじめる（Enter）</button>
       <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
-      <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
       <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
+      <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
     </div>
     <div id="title-stats">
       <span id="title-best">自己ベスト: ——</span>
@@ -908,13 +943,15 @@ const AUDIO = {
     title: "assets/bgm_title.mp3",
     /* stage は文字列でも、イントロ付きのオブジェクトでも書ける。
          "assets/xxx.mp3"
-         { src: "assets/xxx.mp3", loopStart: 12.5, volume: 0.8 }
-       loopStart は2周目以降の開始位置（秒／省略時0＝曲全体をループ）、
+         { src: "assets/xxx.mp3", loopStart: 12.5, loopEnd: 23.0, volume: 0.8 }
+       loopStart は2周目以降の開始位置（秒／省略時0＝先頭から）、
+       loopEnd はループの折り返し位置（秒／省略時は曲の末尾）。
+       1周目は先頭から loopEnd まで鳴り、以降は loopStart〜loopEnd を繰り返す。
        volume は音量（省略時 BGM_VOLUME）。 */
     stage: {
       micchan:   "assets/micchan.wav",
       nimushi:  "assets/nimushi.mp3",
-      nempan:   { src: "assets/nempan.mp3", loopStart: 5.03 },
+      nempan:   "assets/nempan.wav",
       ponkotsu: "assets/ponkotsu.mp3",
     },
   },
@@ -943,12 +980,12 @@ const CHARACTERS = [
     imageVictory: "assets/micchanWin.jpeg",   // 勝ったときの差分。同上
     emoji: "🔮",
     profileImage: "assets/micchanx.jpg",   // 人物紹介用。null なら image → emoji の順に落とす
-    profileText:  "",     // 一言紹介。空でも崩れない
+    profileText:  "好奇心のままに、気になることには手当たり次第に首を突っ込む。　　戦うことと含み損はちょっぴり苦手。　　　　　　　　　　　　　　　本当はみんなと楽しく投資を学びながら、遊びたいだけ。",     // 一言紹介。空でも崩れない
     entryLine:   "ねぇ、私と遊ぼ！",
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "四天王の闇担当。光属性が弱点。\nメンタルHPは常に瀕死ですが、積立だけは止まりません。", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "四天王の闇担当。メンタルとHPは常に瀕死ですが、積立だけは止まりません。", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: "assets/nempanx.jpeg", profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: "assets/ponkotsux.jpg", profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
@@ -1284,20 +1321,22 @@ function renderFace(el, chara, variant) {
 /* ---------- 音（BGM・効果音） ---------- */
 
 /**
- * HTMLAudioElement だけで組む。Web Audio API は使わない。
- * ファイルが無い / 自動再生が拒否される のどちらでも例外を投げず、無音で進む。
+ * BGMは Web Audio（AudioBufferSourceNode）でループさせる。
+ * ブラウザの音声エンジンが内部で連続再生するため、継ぎ目がサンプル単位で正確になる。
+ * 効果音は数が多く短いので、従来どおり HTMLAudioElement のプール方式のまま。
+ * 音源が無い / 自動再生が拒否される のどちらでも例外を投げず、無音で進む。
  */
 const audio = {
   enabled: false,    // 音を鳴らす設定。既定は OFF
   unlocked: false,   // 最初のユーザー操作で true（ブラウザの自動再生制限の解除）
-  bgmEls: null,      // 同じ曲の Audio を2つ。交互に鳴らして継ぎ目をなくす
-  bgmIndex: 0,       // いま鳴っている方（0 or 1）
-  bgmWatcher: null,  // 終端監視の setInterval
+  ctx: null,         // AudioContext。ユーザー操作後にだけ生成する
+  bgmNode: null,     // 再生中の AudioBufferSourceNode
+  bgmGain: null,     // その音量を握る GainNode
+  bgmBuffers: {},    // src -> AudioBuffer（デコード結果を使い回す）
+  bgmLoading: {},    // src -> Promise（同じ曲を二重に取りに行かない）
+  bgmToken: 0,       // 非同期の取り違え防止。最後の要求だけが再生に進む
   bgmWant: null,     // 鳴らしたい曲（正規化済み）。解禁前・OFF中でも覚えておく
   bgmCurrent: null,  // いま鳴らしている曲の src
-  bgmLoopStart: 0,   // 2周目以降の開始位置（秒）
-  bgmVolume: 1,      // その曲の設定音量
-  fadeTimer: null,   // フェードインの setInterval
   pools: {},         // 効果音のプール src -> { els, next }
   broken: {},        // 読み込みに失敗した src。以後は試さない
 };
@@ -1305,14 +1344,8 @@ const audio = {
 /** 同じ効果音を重ねて鳴らせる数。打鍵音が連打されても詰まらないようにする。 */
 const SE_POOL_SIZE = 4;
 
-/* BGMの継ぎ目対策。<audio loop> は末尾→先頭で数十msの無音が入るため、
-   同じ音源の Audio を2つ用意し、終端の少し手前でもう片方を頭から鳴らす。 */
-const BGM_WATCH_MS   = 50;   // 終端監視の間隔（timeupdate は粗いので setInterval で見る）
-const BGM_OVERLAP_MS = 80;   // 次を鳴らし始めるタイミング（終端の何ms手前か）
-
-/* 戦闘開始時のフェードイン。Web Audio は使わず volume を段階的に上げる。 */
-const BGM_FADE_MS      = 500;
-const BGM_FADE_STEP_MS = 25;
+/** 戦闘開始時のフェードイン（秒）。GainNode のランプで上げる。 */
+const BGM_FADE_SEC = 0.5;
 
 /** play() の失敗は握りつぶす（未配置ファイル・自動再生制限のどちらでも落とさない） */
 function playSafely(el) {
@@ -1363,10 +1396,15 @@ function normalizeBgm(entry) {
   const base = normalizeSound(entry, BGM_VOLUME);
   if (!base) return null;
 
-  const raw = (entry && typeof entry === "object") ? entry.loopStart : null;
-  const loopStart = (typeof raw === "number" && isFinite(raw) && raw > 0) ? raw : 0;
+  const obj = (entry && typeof entry === "object") ? entry : {};
+  const num = v => (typeof v === "number" && isFinite(v) && v > 0) ? v : 0;
 
-  return { src: base.src, loopStart, volume: base.volume };
+  const loopStart = num(obj.loopStart);
+  const rawEnd    = num(obj.loopEnd);
+  // loopEnd が loopStart 以下なら無効（曲の末尾までループする）
+  const loopEnd = (rawEnd > loopStart) ? rawEnd : 0;
+
+  return { src: base.src, loopStart, loopEnd, volume: base.volume };
 }
 
 function canPlay(src) {
@@ -1394,36 +1432,9 @@ function playSe(entry) {
   playSafely(el);
 }
 
-function setBgmVolume(v) {
-  if (!audio.bgmEls) return;
-  audio.bgmEls.forEach(el => {
-    try { el.volume = Math.min(1, Math.max(0, v)); } catch (e) { /* 無視 */ }
-  });
-}
-
-/** 0 → 設定音量へ 0.5秒かけて上げる。切り替え中の2要素どちらにも効かせる。 */
-function fadeInBgm() {
-  clearInterval(audio.fadeTimer);
-
-  const target = audio.bgmVolume;
-  const steps = Math.max(1, Math.round(BGM_FADE_MS / BGM_FADE_STEP_MS));
-  let step = 0;
-
-  setBgmVolume(0);
-  audio.fadeTimer = setInterval(() => {
-    step++;
-    setBgmVolume(target * step / steps);
-    if (step >= steps) {
-      clearInterval(audio.fadeTimer);
-      audio.fadeTimer = null;
-      setBgmVolume(target);
-    }
-  }, BGM_FADE_STEP_MS);
-}
-
 /**
  * 鳴っている効果音をすべて止める。画面が切り替わるときに使う。
- * BGMは別管理（audio.bgmEls）なので、ここでは触らない。
+ * BGMは Web Audio 側で別管理なので、ここでは触らない。
  */
 function stopAllSe() {
   Object.keys(audio.pools).forEach(src => {
@@ -1433,114 +1444,129 @@ function stopAllSe() {
   });
 }
 
-function stopBgmElement() {
-  clearInterval(audio.bgmWatcher);
-  audio.bgmWatcher = null;
-  clearInterval(audio.fadeTimer);
-  audio.fadeTimer = null;
+/** AudioContext はユーザー操作後にだけ作る（自動再生制限のため） */
+function ensureAudioContext() {
+  if (audio.ctx) {
+    if (audio.ctx.state === "suspended") audio.ctx.resume().catch(() => {});
+    return audio.ctx;
+  }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;                     // 未対応ブラウザは無音で進む
+  try {
+    audio.ctx = new Ctx();
+  } catch (e) {
+    return null;
+  }
+  return audio.ctx;
+}
 
-  if (audio.bgmEls) {
-    audio.bgmEls.forEach(el => {
-      try { el.pause(); el.currentTime = 0; } catch (e) { /* 無視 */ }
+/** 音源を取得してデコードする。失敗しても例外は投げず null を返す。 */
+function loadBgmBuffer(src) {
+  if (audio.bgmBuffers[src]) return Promise.resolve(audio.bgmBuffers[src]);
+  if (audio.bgmLoading[src]) return audio.bgmLoading[src];
+
+  const ctx = audio.ctx;
+  if (!ctx) return Promise.resolve(null);
+
+  const task = fetch(src)
+    .then(res => {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.arrayBuffer();
+    })
+    .then(buf => ctx.decodeAudioData(buf))
+    .then(decoded => {
+      audio.bgmBuffers[src] = decoded;
+      delete audio.bgmLoading[src];
+      return decoded;
+    })
+    .catch(() => {
+      audio.broken[src] = true;              // 以後この曲は試さない
+      delete audio.bgmLoading[src];
+      return null;
     });
+
+  audio.bgmLoading[src] = task;
+  return task;
+}
+
+/** 再生中のノードを止めて片付ける。予約（bgmWant）は残す。 */
+function stopBgmNode() {
+  if (audio.bgmNode) {
+    try { audio.bgmNode.onended = null; audio.bgmNode.stop(); } catch (e) { /* 無視 */ }
+    try { audio.bgmNode.disconnect(); } catch (e) { /* 無視 */ }
   }
-  audio.bgmEls = null;
-  audio.bgmIndex = 0;
+  if (audio.bgmGain) {
+    try { audio.bgmGain.disconnect(); } catch (e) { /* 無視 */ }
+  }
+  audio.bgmNode = null;
+  audio.bgmGain = null;
   audio.bgmCurrent = null;
-}
-
-/**
- * 終端の手前まで来たら、もう片方を頭から鳴らす。
- * 前の要素は重なりぶんだけ鳴らしたまま自然に終わらせる（＝無音が入らない）。
- */
-/** 2周目以降の開始位置。曲より後ろを指していたら先頭に倒す。 */
-function loopStartFor(el) {
-  const dur = el && el.duration;
-  const ls = audio.bgmLoopStart;
-  if (!(ls > 0)) return 0;
-  if (dur && isFinite(dur) && ls >= dur) return 0;
-  return ls;
-}
-
-/**
- * 待機側を loopStart まで事前にシークしておく。
- * 切り替えの瞬間に play() を呼ぶだけで済み、シーク待ちのラグが出ない。
- */
-function prepareStandby(el) {
-  if (!el) return;
-  el._prepared = false;
-
-  const seek = () => {
-    const from = loopStartFor(el);
-    if (Math.abs(el.currentTime - from) < 0.01) {   // すでにその位置なら何もしない
-      el._prepared = true;
-      return;
-    }
-    const onSeeked = () => {
-      el._prepared = true;
-      el.removeEventListener("seeked", onSeeked);
-    };
-    el.addEventListener("seeked", onSeeked);
-    try { el.currentTime = from; } catch (e) { /* あとで保険側が拾う */ }
-  };
-
-  // メタデータ待ちの場合は読み込めてからシークする
-  if (el.readyState >= 1) seek();
-  else el.addEventListener("loadedmetadata", seek, { once: true });
-}
-
-function bgmTick() {
-  if (!audio.bgmEls) return;
-
-  const cur = audio.bgmEls[audio.bgmIndex];
-  const dur = cur.duration;
-  if (!dur || !isFinite(dur)) return;          // メタデータがまだ来ていない
-  if (cur.currentTime < dur - BGM_OVERLAP_MS / 1000) return;
-
-  // 待機側は事前にシーク済み。ここでは鳴らすだけ。
-  const next = audio.bgmEls[1 - audio.bgmIndex];
-  if (!next._prepared) {                       // 保険（シークが間に合わなかった場合）
-    try { next.currentTime = loopStartFor(next); } catch (e) { /* 無視 */ }
-  }
-  playSafely(next);
-  audio.bgmIndex = 1 - audio.bgmIndex;
 }
 
 /** BGMを止め、鳴らしたい曲も忘れる（撃破・時間切れ・クリア画面用） */
 function stopBgm() {
   audio.bgmWant = null;
-  stopBgmElement();
+  audio.bgmToken++;            // 読み込み中の曲が後から鳴り出さないように
+  stopBgmNode();
 }
 
-/** BGM。同じ曲なら鳴らし直さない（ステージ内でぶつ切りにならないように）。 */
+/** バッファを実際に鳴らす。ループ区間は loopStart〜loopEnd。 */
+function startBgmNode(buffer, want) {
+  const ctx = audio.ctx;
+  if (!ctx || !buffer) return;
+
+  const node = ctx.createBufferSource();
+  const gain = ctx.createGain();
+
+  node.buffer = buffer;
+  node.loop = true;
+  node.loopStart = (want.loopStart > 0 && want.loopStart < buffer.duration) ? want.loopStart : 0;
+  node.loopEnd   = (want.loopEnd > node.loopStart && want.loopEnd <= buffer.duration)
+    ? want.loopEnd : buffer.duration;
+
+  node.connect(gain).connect(ctx.destination);
+
+  // 登場演出が無音なので、唐突に始まらないよう 0 から立ち上げる
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(want.volume, now + BGM_FADE_SEC);
+
+  try {
+    node.start();              // 1周目は先頭から。以降 loopStart〜loopEnd を繰り返す
+  } catch (e) {
+    return;                    // 鳴らせなくても進行は止めない
+  }
+
+  audio.bgmNode = node;
+  audio.bgmGain = gain;
+  audio.bgmCurrent = want.src;
+}
+
+/** BGM。同じ曲が鳴っていれば鳴らし直さない（ステージ内でぶつ切りにしない）。 */
 function playBgm(entry) {
   const want = normalizeBgm(entry);
   audio.bgmWant = want;
 
   if (!want || !canPlay(want.src)) {
-    stopBgmElement();   // OFF・解禁前・ファイル無しは無音。予約だけ残す
+    audio.bgmToken++;
+    stopBgmNode();             // OFF・解禁前・ファイル無しは無音。予約だけ残す
     return;
   }
-  const playing = audio.bgmEls && audio.bgmEls.some(el => !el.paused);
-  if (playing && audio.bgmCurrent === want.src) return;
+  if (audio.bgmCurrent === want.src && audio.bgmNode) return;
 
-  stopBgmElement();
-  audio.bgmCurrent   = want.src;
-  audio.bgmLoopStart = want.loopStart;
-  audio.bgmVolume    = want.volume;
+  const ctx = ensureAudioContext();
+  if (!ctx) return;
 
-  // loop は使わない。2つを交互に鳴らして継ぎ目を埋める。
-  audio.bgmEls = [makeAudio(want.src, false), makeAudio(want.src, false)];
-  audio.bgmIndex = 0;
+  const token = ++audio.bgmToken;
+  stopBgmNode();
 
-  // 鳴り終わった要素は、次の出番に備えてすぐ loopStart へ巻き戻す
-  // （しっぽを鳴らし切ってからなので、再生中の音は切らない）
-  audio.bgmEls.forEach(el => el.addEventListener("ended", () => prepareStandby(el)));
-
-  playSafely(audio.bgmEls[0]);            // 1周目は先頭（イントロ）から
-  prepareStandby(audio.bgmEls[1]);        // 待機側は先に loopStart へ寄せておく
-  fadeInBgm();                   // 登場演出が無音なので、唐突に始まらないよう立ち上げる
-  audio.bgmWatcher = setInterval(bgmTick, BGM_WATCH_MS);
+  loadBgmBuffer(want.src).then(buffer => {
+    // 読み込み中に別の曲へ切り替わった／音を切られたなら、もう鳴らさない
+    if (token !== audio.bgmToken) return;
+    if (!buffer || !canPlay(want.src)) return;
+    if (audio.bgmWant !== want) return;
+    startBgmNode(buffer, want);
+  });
 }
 
 /** キャラIDで曲を引く。配列で書かれている場合は CHARACTERS の定義順で引く。 */
@@ -1554,6 +1580,7 @@ function bgmFor(chara) {
 function unlockAudio() {
   if (audio.unlocked) return;
   audio.unlocked = true;
+  ensureAudioContext();                        // ユーザー操作のこのタイミングで作る
   if (audio.bgmWant) playBgm(audio.bgmWant);   // 解禁前に予約していた曲を鳴らす
 }
 
@@ -1562,7 +1589,7 @@ function setSoundEnabled(on) {
   saveSoundSetting(audio.enabled);
   renderSoundToggle();
   if (audio.enabled) playBgm(audio.bgmWant);
-  else stopBgmElement();                     // OFF は完全に無音。予約は残す
+  else { audio.bgmToken++; stopBgmNode(); }   // OFF は完全に無音。予約は残す
 }
 
 function renderSoundToggle() {
@@ -1678,6 +1705,16 @@ document.title = TITLE;
   });
 })();
 
+/** タイトルの背景。読み込めなければ画像とオーバーレイを消し、下地の色に戻す。 */
+(function setupTitleBg() {
+  const bg    = document.getElementById("title-bg");
+  const scrim = document.getElementById("title-scrim");
+
+  bg.alt = "";
+  bg.addEventListener("load",  () => { bg.hidden = false; scrim.hidden = false; });
+  bg.addEventListener("error", () => { bg.hidden = true;  scrim.hidden = true;  });
+})();
+
 /** スタート画面を抜けてタイトルへ。ここが音の解禁ポイント。 */
 function leaveStartScreen() {
   if (currentScreen !== "start") return;
@@ -1691,22 +1728,6 @@ function enterTitle() {
   showScreen("title");
 }
 
-function buildTitleRoster() {
-  const box = document.getElementById("title-roster");
-  box.textContent = "";
-  CHARACTERS.forEach(c => {
-    const wrap = document.createElement("div");
-    wrap.className = "roster-member";
-    const face = document.createElement("div");
-    face.className = "face roster-face";
-    renderFace(face, c);
-    const name = document.createElement("div");
-    name.className = "roster-name";
-    name.textContent = c.name;
-    wrap.append(face, name);
-    box.appendChild(wrap);
-  });
-}
 
 // ボタン類のクリック音はまとめて拾う（個別の listener を汚さない）
 document.getElementById("stage").addEventListener("click", (e) => {
@@ -2619,7 +2640,6 @@ function syncOgpTags() {
 syncOgpTags();
 audio.enabled = loadSoundSetting();
 renderSoundToggle();
-buildTitleRoster();
 buildClearRoster();
 buildProfileCards();
 renderBest();
