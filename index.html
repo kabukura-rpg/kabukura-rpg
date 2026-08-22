@@ -320,7 +320,20 @@
     border: 1px solid var(--border);
     border-radius: 6px;
   }
-  .profile-card .face { --face-size: var(--face-profile); }
+  /* 人物紹介の顔だけ円形。枠（背景と縁）は親側に持たせ、
+     絵文字フォールバックでも同じ円枠になるようにする。 */
+  .profile-card .face {
+    --face-size: var(--face-profile);
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    overflow: hidden;           /* 画像を円の内側で切り抜く */
+  }
+  .profile-card .face img {
+    border: none;               /* 枠は親が持つので二重にしない */
+    background: transparent;
+    border-radius: 50%;
+  }
   .profile-body { flex: 1; min-width: 0; }
   .profile-name { font-size: 20px; }
   .profile-handle { font-size: 14px; margin-top: 2px; }
@@ -885,6 +898,11 @@ const HASHTAGS = ["#株クラTPG"];
  * 音源。ファイルが未配置でも無音で進むので、届いたぶんから差し替えればよい。
  * bgm.stage は登場順ではなくキャラIDで引く（登場順は毎回変わるため）。
  */
+/* 音量の既定値。全体のバランスはここで調整する（0〜1）。
+   個別に変えたい音は { src, volume } の形で上書きできる。 */
+const BGM_VOLUME = 0.2;   // BGMは控えめに。効果音を聞き取りやすくするため
+const SE_VOLUME  = 1.2;   // 効果音の既定音量
+
 const AUDIO = {
   bgm: {
     title: "assets/bgm_title.mp3",
@@ -892,7 +910,7 @@ const AUDIO = {
          "assets/xxx.mp3"
          { src: "assets/xxx.mp3", loopStart: 12.5, volume: 0.8 }
        loopStart は2周目以降の開始位置（秒／省略時0＝曲全体をループ）、
-       volume は音量（省略時1.0）。 */
+       volume は音量（省略時 BGM_VOLUME）。 */
     stage: {
       micchan:   "assets/micchan.wav",
       nimushi:  "assets/nimushi.mp3",
@@ -900,9 +918,11 @@ const AUDIO = {
       ponkotsu: "assets/ponkotsu.mp3",
     },
   },
+  /* se も文字列と { src, volume } の両方に対応（volume 省略時は SE_VOLUME）。
+       "assets/se_x.mp3"  /  { src: "assets/se_x.mp3", volume: 0.6 } */
   se: {
     click:   "assets/se_click.mp3",
-    type:    "assets/se_type.mp3",
+    type:    { src: "assets/se_type.mp3", volume: 1.0 },   // 打鍵音。ここで個別に上げ下げできる
     miss:    "assets/se_miss.mp3",
     defeat:  "assets/se_defeat.mp3",   // プレイヤーが勝ったとき
     timeup:  "assets/se_timeup.mp3",   // プレイヤーが負けたとき
@@ -922,15 +942,15 @@ const CHARACTERS = [
     imageDefeat: "assets/micchanLose.jpeg",    // 負けたときの差分。無ければ image にフィルタをかける
     imageVictory: "assets/micchanWin.jpeg",   // 勝ったときの差分。同上
     emoji: "🔮",
-    profileImage: null,   // 人物紹介用。null なら image → emoji の順に落とす
+    profileImage: "assets/micchanx.jpg",   // 人物紹介用。null なら image → emoji の順に落とす
     profileText:  "",     // 一言紹介。空でも崩れない
     entryLine:   "ねぇ、私と遊ぼ！",
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: null, profileText: "ぼっちじゃないよーにむしだYO", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
-  { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: null, profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
-  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: null, profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "メンタルは弱いけど積立だけは強制執行してます。タピオカは血液", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
+  { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: "assets/nempanx.jpeg", profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
+  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: "assets/ponkotsux.jpg", profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
 
 const SPELL_TIERS = [
@@ -1317,17 +1337,38 @@ function makeAudio(src, loop) {
  * BGMの指定を { src, loopStart, volume } に揃える。
  * 文字列で書かれていた場合も受け付ける（後方互換）。
  */
-function normalizeBgm(entry) {
+/**
+ * 音の指定を { src, volume } に揃える。
+ * 文字列で書かれていた場合も受け付ける（後方互換）。
+ * volume は 0〜1 にクランプし、未指定なら既定値を使う。
+ */
+function normalizeSound(entry, defaultVolume) {
+  // HTMLAudioElement の volume は 0〜1 しか受け付けない（超えると例外）。
+  // 個別指定でも既定値でも、必ずここを通してから使う。
+  const clamp = v => Math.min(1, Math.max(0, (typeof v === "number" && isFinite(v)) ? v : 1));
+
   if (!entry) return null;
-  if (typeof entry === "string") return { src: entry, loopStart: 0, volume: 1 };
+  if (typeof entry === "string") return { src: entry, volume: clamp(defaultVolume) };
   if (typeof entry.src !== "string" || !entry.src) return null;
 
-  const loopStart = (typeof entry.loopStart === "number" && isFinite(entry.loopStart) && entry.loopStart > 0)
-    ? entry.loopStart : 0;
-  const volume = (typeof entry.volume === "number" && isFinite(entry.volume))
-    ? Math.min(1, Math.max(0, entry.volume)) : 1;
+  const raw = (typeof entry.volume === "number" && isFinite(entry.volume)) ? entry.volume : defaultVolume;
+  return { src: entry.src, volume: clamp(raw) };
+}
 
-  return { src: entry.src, loopStart, volume };
+/** 効果音用。{ src, volume } か文字列。 */
+function normalizeSe(entry) {
+  return normalizeSound(entry, SE_VOLUME);
+}
+
+/** BGM用。上に加えて loopStart を持つ。 */
+function normalizeBgm(entry) {
+  const base = normalizeSound(entry, BGM_VOLUME);
+  if (!base) return null;
+
+  const raw = (entry && typeof entry === "object") ? entry.loopStart : null;
+  const loopStart = (typeof raw === "number" && isFinite(raw) && raw > 0) ? raw : 0;
+
+  return { src: base.src, loopStart, volume: base.volume };
 }
 
 function canPlay(src) {
@@ -1335,18 +1376,20 @@ function canPlay(src) {
 }
 
 /** 効果音。プールを順番に使うので、再生中でも即座に鳴らし直せる。 */
-function playSe(src) {
-  if (!canPlay(src)) return;
+function playSe(entry) {
+  const want = normalizeSe(entry);
+  if (!want || !canPlay(want.src)) return;
 
-  let pool = audio.pools[src];
+  let pool = audio.pools[want.src];
   if (!pool) {
     pool = { els: [], next: 0 };
-    for (let i = 0; i < SE_POOL_SIZE; i++) pool.els.push(makeAudio(src, false));
-    audio.pools[src] = pool;
+    for (let i = 0; i < SE_POOL_SIZE; i++) pool.els.push(makeAudio(want.src, false));
+    audio.pools[want.src] = pool;
   }
 
   const el = pool.els[pool.next];
   pool.next = (pool.next + 1) % pool.els.length;
+  try { el.volume = want.volume; } catch (e) { /* 範囲外なら既定のまま鳴らす */ }
   try { el.currentTime = 0; } catch (e) { /* まだ読み込めていないだけ */ }
   playSafely(el);
 }
