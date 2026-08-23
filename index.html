@@ -938,20 +938,39 @@ const HASHTAGS = ["#株クラTPG"];
 const BGM_VOLUME = 0.2;   // BGMは控えめに。効果音を聞き取りやすくするため
 const SE_VOLUME  = 1.2;   // 効果音の既定音量
 
-/** タイトル画面の背景。cleared が無ければ normal に落ちる。 */
-const TITLE_BG = {
-  normal:  "assets/title_bg.jpeg",
-  cleared: "assets/title_bg_cleared.jpeg",
-};
+/**
+ * タイトル画面のテーマ。上から順に condition を評価し、最初に一致したものを使う。
+ * condition には loadProgress() の結果がそのまま渡る。
+ *   p.clearCount     … 累計クリア回数
+ *   p.noTimeoutClear … 一度でも時間切れなしでクリアしたか
+ *   p.unlockedTitles … 獲得済みの称号ID
+ * 条件を増やしたいときは、このリストに項目を足すだけでよい（上ほど優先）。
+ * 素材が無い項目は、下の項目の素材へ自動的に落ちる。
+ */
+const TITLE_THEMES = [
+  {
+    id: "flawless",
+    bg:  "assets/title_bg_flawless.jpeg",
+    bgm: { src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
+    condition: (p) => p.noTimeoutClear === true,
+  },
+  {
+    id: "cleared",
+    bg:  "assets/title_bg_cleared.jpeg",
+    bgm: { src: "assets/bgm_title_cleared.mp3", loopStart: 0, volume: 0.4 },
+    condition: (p) => p.clearCount >= 1,
+  },
+  {
+    id: "normal",
+    bg:  "assets/title_bg.jpeg",
+    bgm: { src: "assets/bgm_title.mp3", loopStart: 0, volume: 0.4 },
+    condition: () => true,
+  },
+];
 
 const AUDIO = {
   bgm: {
-    /* クリア前後で差し替える。cleared が null なら normal を使う。
-       文字列や { src, ... } を直接書いた場合は、クリア状況にかかわらずそれを使う。 */
-    title: {
-      normal:  { src: "assets/bgm_title.mp3",         loopStart: 0, volume: 0.4 },
-      cleared: { src: "assets/bgm_title_cleared.mp3", loopStart: 0, volume: 0.4 },
-    },
+    /* タイトルのBGMは TITLE_THEMES 側で条件ごとに持つ。 */
     /* stage は文字列でも、イントロ付きのオブジェクトでも書ける。
          "assets/xxx.mp3"
          { src: "assets/xxx.mp3", loopStart: 12.5, loopEnd: 23.0, volume: 0.8 }
@@ -1717,30 +1736,48 @@ document.title = TITLE;
 })();
 
 /** タイトルの背景。読み込めなければ画像とオーバーレイを消し、下地の色に戻す。 */
-/** 一度でもクリアしていれば true（保存データから毎回読む） */
-function isCleared() {
-  return loadProgress().clearCount >= 1;
-}
-
 /** 読み込みに失敗した背景画像。同じものを何度も取りに行かない。 */
 const titleBgBroken = {};
 
-/** いま使うべき背景画像のパス */
-function titleBgSrc() {
-  const cleared = TITLE_BG.cleared;
-  if (isCleared() && cleared && !titleBgBroken[cleared]) return cleared;
-  const normal = TITLE_BG.normal;
-  return (normal && !titleBgBroken[normal]) ? normal : "";
+/** 条件に一致するテーマの位置。どれにも当てはまらなければ最後尾扱い。 */
+function matchedThemeIndex() {
+  const progress = loadProgress();
+  for (let i = 0; i < TITLE_THEMES.length; i++) {
+    const cond = TITLE_THEMES[i].condition;
+    let hit = false;
+    try {
+      hit = (typeof cond === "function") ? !!cond(progress) : !!cond;
+    } catch (e) {
+      hit = false;              // 条件式が壊れていても進行は止めない
+    }
+    if (hit) return i;
+  }
+  return TITLE_THEMES.length;   // 一致なし＝素材も無し扱い
 }
 
-/** いま使うべきタイトルBGM。文字列や { src } をそのまま書いた場合はそれを使う（後方互換）。 */
-function titleBgmEntry() {
-  const t = AUDIO.bgm ? AUDIO.bgm.title : null;
-  if (!t) return null;
-  if (typeof t === "string" || typeof t.src === "string") return t;
+/** いま使うテーマ（デバッグ・確認用） */
+function currentTheme() {
+  return TITLE_THEMES[matchedThemeIndex()] || null;
+}
 
-  const cleared = isCleared() ? t.cleared : null;
-  return cleared || t.normal || null;
+/** 背景画像。一致したテーマに素材が無ければ、下位のテーマへ順に落ちる。 */
+function titleBgSrc() {
+  for (let i = matchedThemeIndex(); i < TITLE_THEMES.length; i++) {
+    const bg = TITLE_THEMES[i].bg;
+    if (bg && !titleBgBroken[bg]) return bg;
+  }
+  return "";
+}
+
+/** BGM。bgm が null／読み込み失敗のテーマは飛ばして下位へ落ちる。 */
+function titleBgmEntry() {
+  for (let i = matchedThemeIndex(); i < TITLE_THEMES.length; i++) {
+    const bgm = TITLE_THEMES[i].bgm;
+    if (!bgm) continue;
+    const src = (typeof bgm === "string") ? bgm : bgm.src;
+    if (src && !audio.broken[src]) return bgm;
+  }
+  return null;
 }
 
 /** タイトルに入るたびに背景を選び直す */
