@@ -312,6 +312,10 @@
     animation: start-blink 2s ease-in-out infinite;
   }
 
+  /* ホワイトアウト中は案内だけ伏せる。hidden で消すと場所が詰まって本文が下へずれるため、
+     visibility で「見えないが場所は残る」状態にする。 */
+  #story-guide.is-quiet { visibility: hidden; }
+
   /* ホワイトアウト。既定は透明で、最後の行に入ったところで JS が不透明にする。 */
   #story-whiteout {
     position: absolute;
@@ -1092,6 +1096,9 @@ const STORY_FADE_MS = 1500;
 /** ホワイトアウトにかける時間 */
 const STORY_WHITEOUT_MS = 900;
 
+/** 行が出てから入力を受け付けないでいる時間。連打で読み飛ばすのを防ぐ。 */
+const STORY_INPUT_LOCK_MS = 350;
+
 const AUDIO = {
   bgm: {
     /* タイトルのBGMは TITLE_THEMES 側で条件ごとに持つ。 */
@@ -1834,9 +1841,10 @@ const state = {
 /* ---------- ストーリー画面 ---------- */
 
 const story = {
-  index: 0,      // いま表示している行
-  bgSrc: "",     // いま出ている背景。同じ画像を貼り直さないために持つ
-  busy: false,   // ホワイトアウト中。ここでの入力は無視する
+  index: 0,        // いま表示している行
+  bgSrc: "",       // いま出ている背景。同じ画像を貼り直さないために持つ
+  busy: false,     // ホワイトアウト中。ここでの入力は無視する
+  lockedUntil: 0,  // この時刻までの入力は無視する（出たばかりの行を飛ばさないため）
 };
 
 /** ストーリーを流すべきか。空配列・視聴済み・保存が使えない場合は流さない。 */
@@ -1896,13 +1904,15 @@ function renderStoryScene() {
 
   document.getElementById("story-text").textContent =
     (typeof scene.text === "string") ? scene.text : "";
+
+  story.lockedUntil = performance.now() + STORY_INPUT_LOCK_MS;
 }
 
 /** 白くフェードしてからスタート画面へ渡す。 */
 function runWhiteout() {
   const w = document.getElementById("story-whiteout");
   story.busy = true;
-  document.getElementById("story-guide").hidden = true;
+  document.getElementById("story-guide").classList.add("is-quiet");
 
   w.style.transition = "none";
   w.style.opacity = "0";
@@ -1916,6 +1926,7 @@ function runWhiteout() {
 /** 次の行へ。ホワイトアウト中は受け付けない。 */
 function advanceStory() {
   if (currentScreen !== "story" || story.busy) return;
+  if (performance.now() < story.lockedUntil) return;   // 出たばかりの行は飛ばさない
   story.index++;
   renderStoryScene();
 }
@@ -1940,8 +1951,9 @@ function bootFlow() {
 
   story.index = 0;
   story.busy = false;
+  story.lockedUntil = 0;
   setStoryBg(null, false);                                   // 背景・案内を初期状態に戻す
-  document.getElementById("story-guide").hidden = false;
+  document.getElementById("story-guide").classList.remove("is-quiet");
   showScreen("story");
   renderStoryScene();
 }
@@ -2921,6 +2933,7 @@ document.addEventListener("keydown", (e) => {
   if (currentScreen === "story") {
     // どのキーでも次の行へ。打鍵判定には一切回さない。
     e.preventDefault();
+    if (e.repeat) return;   // 押しっぱなしの連続発火では進めない（行の読み飛ばし防止）
     advanceStory();
     return;
   }
@@ -2928,6 +2941,7 @@ document.addEventListener("keydown", (e) => {
   if (currentScreen === "start") {
     // どのキーでも先へ進む。打鍵判定には一切回さない。
     e.preventDefault();
+    if (e.repeat) return;   // ストーリーからの押しっぱなしがそのまま突き抜けないように
     leaveStartScreen();
     return;
   }
