@@ -240,6 +240,88 @@
   #title-best { color: #F0E2C6; }
   #title-titles { color: var(--accent); }
 
+  /* ---------- ストーリー画面 ---------- */
+
+  #screen-story {
+    justify-content: flex-end;
+    cursor: pointer;
+    background: var(--bg);      /* 背景画像が無い／読み込めないときの下地 */
+  }
+
+  /* 背景は全面。fadeIn の行では opacity を 0 から上げる（JS 側で制御）。 */
+  #story-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* 文字が乗る下半分だけを濃く落とす。イラスト全体は暗くしない。 */
+  #story-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.82) 0%,
+      rgba(0, 0, 0, 0.72) 30%,
+      rgba(0, 0, 0, 0) 62%);
+    pointer-events: none;
+  }
+
+  #story-box {
+    position: relative;         /* 背景より前に出す */
+    z-index: 1;
+    width: 100%;
+    padding: 0 58px;            /* 一番長い行が1行に収まる余白 */
+    margin-bottom: 26px;
+    min-height: 150px;          /* 行数が変わっても案内テキストが動かない高さ */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  #story-speaker {
+    font-size: 21px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    margin-bottom: 10px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  }
+
+  #story-text {
+    margin: 0;
+    font-size: 23px;
+    line-height: 1.75;
+    color: #FFF3DC;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95),
+                 0 0 14px rgba(0, 0, 0, 0.8);
+  }
+
+  /* 明滅はスタート画面のものを流用する */
+  #story-guide {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 26px;
+    font-size: 17px;
+    letter-spacing: 0.04em;
+    color: #FFF3DC;
+    opacity: 0.85;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95),
+                 0 0 14px rgba(0, 0, 0, 0.85);
+    animation: start-blink 2s ease-in-out infinite;
+  }
+
+  /* ホワイトアウト。既定は透明で、最後の行に入ったところで JS が不透明にする。 */
+  #story-whiteout {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: #FFFFFF;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   /* ---------- スタート画面 ---------- */
 
   #screen-start {
@@ -763,7 +845,19 @@
 
 <div id="stage">
 
-  <!-- スタート画面（起動時の1枚目） -->
+  <!-- ストーリー画面（初回訪問時のみ。スタート画面より前に出る） -->
+  <section class="screen" id="screen-story">
+    <img id="story-bg" alt="" hidden>
+    <div id="story-scrim"></div>
+    <div id="story-box">
+      <div id="story-speaker" hidden></div>
+      <p id="story-text"></p>
+    </div>
+    <div id="story-guide">クリックまたはキーを押して進む</div>
+    <div id="story-whiteout"></div>
+  </section>
+
+  <!-- スタート画面（ストーリーの次。2回目以降は起動時の1枚目） -->
   <section class="screen" id="screen-start">
     <img id="start-bg" src="assets/start.jpeg" alt="">
     <div id="start-scrim"></div>
@@ -967,6 +1061,36 @@ const TITLE_THEMES = [
     condition: () => true,
   },
 ];
+
+/**
+ * 冒頭のストーリー。初回訪問時だけ、スタート画面より前に流れる。
+ *   bg       … 背景画像のパス。書いた行で切り替わる（null で背景なし）。
+ *              省略した行は、それまでの背景をそのまま使う。
+ *   speaker  … 話し手の名前。空文字ならナレーション（名前を出さない）。
+ *   text     … 本文。
+ *   fadeIn   … true なら背景を STORY_FADE_MS かけてゆっくり表示する。
+ *   whiteout … true ならその行で白くフェードし、次の画面へ進む（本文は不要）。
+ * この配列を空にすると、ストーリー画面ごと飛ばしてスタート画面から始まる。
+ */
+const STORY = [
+  { bg: null,                   speaker: "",         text: "——つんつん。" },
+  { bg: "assets/title_bg.jpeg", speaker: "",         text: "誰かにほっぺをつつかれて、あなたは目を覚ましました。", fadeIn: true },
+  { speaker: "にむし",     text: "あっ、目を開けたよ！" },
+  { speaker: "みっちゃん", text: "大丈夫かな……" },
+  { speaker: "あなた",     text: "ここは……？" },
+  { speaker: "女王",       text: "ここは『株クラRPG』の世界ですわ" },
+  { speaker: "",           text: "ゆっくりと体を起こすと、もふもふしっぽの女の子があなたの手をひっぱります" },
+  { speaker: "ねむぱん",   text: "ねえ、私たちと一緒に遊ぼうよ！" },
+  { speaker: "あなた",     text: "えっ？" },
+  { speaker: "ねむぱん",   text: "私たち4人とタイピング勝負をして、勝ったら『いいもの』をあげるよ！" },
+  { whiteout: true },
+];
+
+/** 背景のフェードイン（fadeIn: true の行）にかける時間 */
+const STORY_FADE_MS = 1500;
+
+/** ホワイトアウトにかける時間 */
+const STORY_WHITEOUT_MS = 900;
 
 const AUDIO = {
   bgm: {
@@ -1631,6 +1755,7 @@ function renderSoundToggle() {
 /* ---------- 画面遷移 ---------- */
 
 const SCREENS = {
+  story:   document.getElementById("screen-story"),
   start:   document.getElementById("screen-start"),
   title:   document.getElementById("screen-title"),
   profile: document.getElementById("screen-profile"),
@@ -1705,6 +1830,121 @@ const state = {
   stageMiss: 0,
   timeoutCount: 0,     // このプレイで時間切れになった回数（冠 c04 の判定に使う）
 };
+
+/* ---------- ストーリー画面 ---------- */
+
+const story = {
+  index: 0,      // いま表示している行
+  bgSrc: "",     // いま出ている背景。同じ画像を貼り直さないために持つ
+  busy: false,   // ホワイトアウト中。ここでの入力は無視する
+};
+
+/** ストーリーを流すべきか。空配列・視聴済み・保存が使えない場合は流さない。 */
+function shouldShowStory() {
+  if (!Array.isArray(STORY) || STORY.length === 0) return false;
+  return !loadStorySeen();
+}
+
+/** 背景を差し替える。fade なら STORY_FADE_MS かけて現れる。 */
+function setStoryBg(src, fade) {
+  const bg = document.getElementById("story-bg");
+
+  if (!src) {                       // bg: null ＝ 背景なし（下地の色だけ）
+    story.bgSrc = "";
+    bg.hidden = true;
+    bg.removeAttribute("src");
+    return;
+  }
+  if (src === story.bgSrc) return;  // 同じ画像なら貼り直さない（再フェードを防ぐ）
+
+  story.bgSrc = src;
+  bg.hidden = false;
+  bg.style.transition = "none";
+  bg.style.opacity = fade ? "0" : "1";
+  bg.setAttribute("src", src);
+
+  if (fade) {
+    void bg.offsetWidth;            // 強制リフロー。非表示タブでも確実に効かせる
+    bg.style.transition = "opacity " + (STORY_FADE_MS / 1000) + "s ease-in";
+    bg.style.opacity = "1";
+  }
+}
+
+/** 背景が読み込めなくても止まらない。画像を消して下地の色で進める。 */
+document.getElementById("story-bg").addEventListener("error", () => {
+  const bg = document.getElementById("story-bg");
+  if (!bg.getAttribute("src")) return;
+  bg.hidden = true;
+  story.bgSrc = "";
+});
+
+/** 1行ぶんを表示する。whiteout の行に来たらそのまま次の画面へ。 */
+function renderStoryScene() {
+  const scene = STORY[story.index];
+  if (!scene) { finishStory(); return; }
+
+  if (Object.prototype.hasOwnProperty.call(scene, "bg")) {
+    setStoryBg(scene.bg, scene.fadeIn === true);
+  }
+
+  if (scene.whiteout === true) { runWhiteout(); return; }
+
+  const speakerEl = document.getElementById("story-speaker");
+  const speaker = (typeof scene.speaker === "string") ? scene.speaker : "";
+  speakerEl.textContent = speaker;
+  speakerEl.hidden = (speaker === "");   // 空ならナレーション扱い
+
+  document.getElementById("story-text").textContent =
+    (typeof scene.text === "string") ? scene.text : "";
+}
+
+/** 白くフェードしてからスタート画面へ渡す。 */
+function runWhiteout() {
+  const w = document.getElementById("story-whiteout");
+  story.busy = true;
+  document.getElementById("story-guide").hidden = true;
+
+  w.style.transition = "none";
+  w.style.opacity = "0";
+  void w.offsetWidth;                    // 強制リフロー
+  w.style.transition = "opacity " + (STORY_WHITEOUT_MS / 1000) + "s ease-in";
+  w.style.opacity = "1";
+
+  setTimeout(finishStory, STORY_WHITEOUT_MS);
+}
+
+/** 次の行へ。ホワイトアウト中は受け付けない。 */
+function advanceStory() {
+  if (currentScreen !== "story" || story.busy) return;
+  story.index++;
+  renderStoryScene();
+}
+
+/** ストーリーを閉じてスタート画面へ。ここで「視聴済み」を記録する。 */
+function finishStory() {
+  saveStorySeen(true);
+
+  const w = document.getElementById("story-whiteout");
+  w.style.transition = "none";
+  w.style.opacity = "0";
+  story.busy = false;
+
+  showScreen("start");
+}
+
+document.getElementById("screen-story").addEventListener("click", advanceStory);
+
+/** 起動時の入り口。初回だけストーリー、以降はスタート画面から。 */
+function bootFlow() {
+  if (!shouldShowStory()) { showScreen("start"); return; }
+
+  story.index = 0;
+  story.busy = false;
+  setStoryBg(null, false);                                   // 背景・案内を初期状態に戻す
+  document.getElementById("story-guide").hidden = false;
+  showScreen("story");
+  renderStoryScene();
+}
 
 /* ---------- タイトル画面 ---------- */
 
@@ -2310,7 +2550,7 @@ function loadBest() {
     const raw = localStorage.getItem(BEST_KEY);
     if (!raw) return null;
     const b = JSON.parse(raw);
-    if (!b || typeof b !== "object") return null;
+    if (!b || typeof b !== "object" || Array.isArray(b)) return null;   // 配列は保存先として使えない
     return b;
   } catch (e) {
     return null;   // localStorage が使えない環境でもゲームは動かす
@@ -2359,6 +2599,7 @@ function saveBest(earned) {
     clearCount:     earned ? earned.clearCount : prog.clearCount,
     noTimeoutClear: prog.noTimeoutClear || (earned ? earned.noTimeout : false),
     soundEnabled:   audio.enabled,
+    storySeen:      prev.storySeen === true,   // 作り直しで消えないよう引き継ぐ
   };
 
   try {
@@ -2416,6 +2657,22 @@ function resolveTitles() {
 function loadSoundSetting() {
   const b = loadBest() || {};
   return b.soundEnabled === true;
+}
+
+/** ストーリーを見たか。未設定・型違い・保存不可はすべて「まだ」に倒す。 */
+function loadStorySeen() {
+  const b = loadBest() || {};
+  return b.storySeen === true;
+}
+
+function saveStorySeen(seen) {
+  const prev = loadBest() || {};
+  prev.storySeen = !!seen;
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
+  } catch (e) {
+    /* 保存できない環境では毎回ストーリーから始まるが、進行は止めない */
+  }
 }
 
 function saveSoundSetting(on) {
@@ -2661,6 +2918,13 @@ function handleTyping(key) {
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+  if (currentScreen === "story") {
+    // どのキーでも次の行へ。打鍵判定には一切回さない。
+    e.preventDefault();
+    advanceStory();
+    return;
+  }
+
   if (currentScreen === "start") {
     // どのキーでも先へ進む。打鍵判定には一切回さない。
     e.preventDefault();
@@ -2750,7 +3014,7 @@ buildClearRoster();
 buildProfileCards();
 renderBest();
 renderTitleCount();
-showScreen("start");   // 起動時はスタート画面。ここでの操作で音が解禁される
+bootFlow();   // 初回はストーリー、以降はスタート画面。スタート画面での操作で音が解禁される
 </script>
 
 </body>
