@@ -35,7 +35,6 @@
     --face-final:  220px;   /* 最後の相手 */
     --face-defeat: 220px;   /* 撃破画面 */
     --face-timeup: 220px;   /* 時間切れ画面 */
-    --face-clear:  100px;   /* クリア画面のロスター */
     --face-profile: 96px;   /* 人物紹介のカード */
 
 
@@ -231,14 +230,17 @@
   #title-stats {
     margin-top: 10px;
     display: flex;
+    flex-wrap: wrap;            /* 3項目あるので、入らなければ折り返す */
+    justify-content: center;
     align-items: baseline;
-    gap: 22px;
+    gap: 6px 22px;
     font-size: 14px;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95),
                  0 0 12px rgba(0, 0, 0, 0.8);
   }
   #title-best { color: #F0E2C6; }
   #title-titles { color: var(--accent); }
+  #title-rewards { color: var(--accent); }
 
   /* ---------- ストーリー画面 ---------- */
 
@@ -731,7 +733,7 @@
 
   [hidden] { display: none !important; }
 
-  /* 6-7. フィナーレ集合画像。縦長でも横長でも 260px を超えない。 */
+  /* ごほうびイラスト。縦長でも横長でも 260px を超えない。 */
   .finale {
     width: auto;
     max-width: 100%;
@@ -743,21 +745,52 @@
   }
   .finale.visible { opacity: 1; }
 
-  #finale-fallback {
-    text-align: center;
-    font-size: 20px;
-    line-height: 1.7;
+  /* ごほうびイラスト。画像が無いときは名前だけが残る。 */
+  #reward-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #reward-head {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+
+  #reward-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 19px;
     color: var(--text);
   }
-  #finale-fallback-title { color: var(--accent); }
 
-  #finale-save {
+  /* 初めて手に入れた1枚だけに付く。明滅で目を引かせる。 */
+  #reward-new {
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    color: var(--bg-dark);
+    background: var(--accent);
+    border-radius: 3px;
+    animation: reward-new-blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes reward-new-blink {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+  }
+
+  #reward-save {
     font-size: 14px;
     color: var(--accent);
     text-decoration: none;
     border-bottom: 1px solid var(--border);
   }
-  #finale-save:hover { filter: brightness(1.2); }
+  #reward-save:hover { filter: brightness(1.2); }
 
   #clear-head {
     font-size: 40px;
@@ -827,21 +860,6 @@
     background: var(--border);
   }
 
-  #clear-roster {
-    display: grid;
-    grid-template-columns: auto auto auto;
-    align-items: center;
-    gap: 6px 16px;
-    font-size: 16px;
-  }
-  #clear-roster .face { --face-size: var(--face-clear); }
-  #clear-roster a {
-    color: var(--accent);
-    text-decoration: none;
-    border-bottom: 1px solid var(--border);
-  }
-  #clear-roster a:hover { filter: brightness(1.2); }
-
   #clear-buttons { display: flex; gap: 18px; }
 </style>
 </head>
@@ -889,6 +907,7 @@
     <div id="title-stats">
       <span id="title-best">自己ベスト: ——</span>
       <span id="title-titles">称号 0/16</span>
+      <span id="title-rewards">イラスト 0/11</span>
     </div>
   </section>
 
@@ -980,11 +999,7 @@
       <dt>正確率</dt><dd id="clear-accuracy">—</dd>
     </dl>
 
-    <div id="clear-buttons">
-      <button class="btn btn-x" id="btn-share-clear">Xで結果を投稿</button>
-      <button class="btn" id="btn-replay">もう一度あそぶ（Enter）</button>
-      <button class="btn btn-x" id="btn-restart-clear" type="button" tabindex="-1">タイトルへ戻る</button>
-    </div>
+    <button class="btn btn-x" id="btn-share-clear">Xで結果を投稿</button>
 
     <div class="rule"></div>
 
@@ -995,14 +1010,20 @@
       <div id="clear-tip-note"></div>
     </div>
 
-    <img id="finale-img" class="finale" src="assets/finale.jpg" alt="">
-    <div id="finale-fallback" hidden>
-      <div>遊んでくれてありがとう！</div>
-      <div id="finale-fallback-title"></div>
+    <div id="reward-box">
+      <div id="reward-head">🎁 ごほうびイラスト</div>
+      <img id="reward-img" class="finale" alt="">
+      <div id="reward-name-row">
+        <span id="reward-new" hidden>NEW!</span>
+        <span id="reward-name"></span>
+      </div>
+      <a id="reward-save" href="#" download hidden>画像を保存</a>
     </div>
-    <a id="finale-save" href="assets/finale.jpg" download="kabukura-rpg.jpg" hidden>画像を保存</a>
 
-    <div id="clear-roster"></div>
+    <div id="clear-buttons">
+      <button class="btn" id="btn-replay">もう一度あそぶ（Enter）</button>
+      <button class="btn btn-x" id="btn-restart-clear" type="button" tabindex="-1">タイトルへ戻る</button>
+    </div>
 
    </div>
   </section>
@@ -1050,13 +1071,13 @@ const TITLE_THEMES = [
     id: "flawless",
     bg:  "assets/title_bg_flawless.jpeg",
     bgm: { src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
-    condition: (p) => p.noTimeoutClear === true,
+    condition: (p) => p.clearCount >= 2,   // 2周目をクリアしたら
   },
   {
     id: "cleared",
     bg:  "assets/title_bg_cleared.jpeg",
     bgm: { src: "assets/bgm_title_cleared.mp3", loopStart: 0, volume: 0.4 },
-    condition: (p) => p.clearCount >= 1,
+    condition: (p) => p.clearCount >= 1,   // 1周目をクリアしたら
   },
   {
     id: "normal",
@@ -1110,7 +1131,7 @@ const AUDIO = {
        1周目は先頭から loopEnd まで鳴り、以降は loopStart〜loopEnd を繰り返す。
        volume は音量（省略時 BGM_VOLUME）。 */
     stage: {
-      micchan:   "assets/micchan.wav",
+      micchan:   "assets/micchan.mp3",
       nimushi:  "assets/nimushi.mp3",
       nempan:   "assets/nempan_test.mp3",   // ループ確認用に一時差し替え（元: nempan.wav）
       ponkotsu: "assets/ponkotsu.mp3",
@@ -1150,6 +1171,32 @@ const CHARACTERS = [
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: "assets/nempanx.jpeg", profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: "assets/ponkotsux.jpg", profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
+
+/**
+ * ごほうびイラスト。クリアするたびに1枚もらえる。
+ * 通常10枚（ソロ4＋ペア6）を集めきると、最後に集合絵（REWARD_FINAL）が出る。
+ * src が null／読み込めない場合は画像を出さず、name だけで成立する。
+ */
+const REWARDS = [
+  { id: "solo_micchan",  src: "assets/miccahnSolo.jpeg",  name: "みっちゃん" },   // ファイル名は miccahn（配布物のまま）
+  { id: "solo_nimushi",  src: "assets/nimushiSolo.jpeg",  name: "にむし" },
+  { id: "solo_nempan",   src: "assets/nempanSolo.jpeg",   name: "ねむぱん" },
+  { id: "solo_ponkotsu", src: "assets/ponkotsuSolo.jpeg", name: "ポンコツ女王" },
+
+  { id: "pair_mi_ni", src: "assets/miccahnNimushi.jpeg",  name: "みっちゃん & にむし" },   // 同上
+  { id: "pair_mi_ne", src: "assets/nempanMicchan.jpeg",   name: "みっちゃん & ねむぱん" },
+  { id: "pair_mi_po", src: "assets/micchanPonkotsu.jpeg", name: "みっちゃん & ポンコツ女王" },
+  { id: "pair_ni_ne", src: "assets/nempanNimushi.jpeg",   name: "にむし & ねむぱん" },
+  { id: "pair_ni_po", src: "assets/ponkotsuNimushi.jpeg", name: "にむし & ポンコツ女王" },
+  { id: "pair_ne_po", src: "assets/ponkotsuNempan.jpeg",  name: "ねむぱん & ポンコツ女王" },
+];
+
+/** レア枠。通常10枚をすべて集めたクリアで必ず出る。 */
+const REWARD_FINAL = { id: "all", src: "assets/micchanNempanPonkotsuNimushi.jpeg", name: "4人集合" };
+
+/** 抽選の重み。未入手を厚くするほど早く揃う。 */
+const REWARD_WEIGHT_NEW = 5;   // 未入手の重み
+const REWARD_WEIGHT_OWN = 1;   // 入手済みの重み
 
 const SPELL_TIERS = [
   // Tier 1（4〜6文字 / 1番手）
@@ -2089,7 +2136,7 @@ function enterTitle() {
 
 // ボタン類のクリック音はまとめて拾う（個別の listener を汚さない）
 document.getElementById("stage").addEventListener("click", (e) => {
-  if (e.target.closest("button, #finale-save")) playSe(AUDIO.se.click);
+  if (e.target.closest("button, #reward-save")) playSe(AUDIO.se.click);
 });
 
 // 自動再生制限の解除は「はじめる」と音トグルから。
@@ -2186,6 +2233,7 @@ function restartFromTitle() {
 
   renderBest();
   renderTitleCount();
+  renderRewardCount();
   enterTitle();
 }
 
@@ -2446,9 +2494,14 @@ function showClear() {
 
   renderTip();
 
-  saveBest(earned);    // 自己ベストと称号の更新はクリア時のみ
+  // 抽選は保存より先。いま持っているぶんで引かないと、必ず初入手になってしまう。
+  const gained = drawReward();
+  renderReward(gained.reward, gained.isNew);
+
+  saveBest(earned, gained.isNew ? gained.reward.id : null);   // 更新はクリア時のみ
   renderBest();
   renderTitleCount();
+  renderRewardCount();
   showScreen("clear");
 }
 
@@ -2497,48 +2550,106 @@ function buildProfileCards() {
   });
 }
 
-/** 4人全員のXリンク。登場順ではなく CHARACTERS の定義順で固定する。 */
-function buildClearRoster() {
-  const box = document.getElementById("clear-roster");
-  box.textContent = "";
-  CHARACTERS.forEach(c => {
-    const face = document.createElement("span");
-    face.className = "face";
-    renderFace(face, c);
+/* ---------- ごほうびイラスト ---------- */
 
-    const name = document.createElement("span");
-    name.textContent = c.name;
-
-    const link = document.createElement("a");
-    link.href = "https://x.com/" + c.handle.replace(/^@/, "");
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = c.handle;
-
-    box.append(face, name, link);
-  });
+/** 通常10枚＋集合絵。REWARD_FINAL が無くても落ちないようにしておく。 */
+function allRewards() {
+  const list = Array.isArray(REWARDS) ? REWARDS.slice() : [];
+  if (REWARD_FINAL) list.push(REWARD_FINAL);
+  return list;
 }
 
-/** 6-7. 集合画像。未提出（読み込み失敗）ならテキストだけで成立させる。 */
-(function setupFinale() {
-  const img      = document.getElementById("finale-img");
-  const fallback = document.getElementById("finale-fallback");
-  const save     = document.getElementById("finale-save");
+/**
+ * クリア1回ぶんの抽選。獲得した絵と、それが初入手かどうかを返す。
+ *   1. 通常10枚に未入手がある … 未入手を厚めにした重み付き抽選
+ *   2. 通常10枚がそろっている … 集合絵を必ず獲得
+ *   3. 集合絵も持っている     … 11枚から1枚を表示するだけ（記録は増えない）
+ * 乱数は rng() だけを使う。
+ */
+function drawReward() {
+  const owned = loadProgress().unlockedRewards;
+  const has = id => owned.indexOf(id) !== -1;
+  const pool = Array.isArray(REWARDS) ? REWARDS : [];
 
-  img.alt = TITLE + " 一同";
-  document.getElementById("finale-fallback-title").textContent = TITLE + " 一同より";
+  const remaining = pool.filter(r => !has(r.id));
+
+  if (remaining.length > 0) {
+    const weights = pool.map(r => has(r.id) ? REWARD_WEIGHT_OWN : REWARD_WEIGHT_NEW);
+    const picked = pickWeighted(pool, weights);
+    return { reward: picked, isNew: !!picked && !has(picked.id) };
+  }
+
+  if (REWARD_FINAL && !has(REWARD_FINAL.id)) {
+    return { reward: REWARD_FINAL, isNew: true };
+  }
+
+  const all = allRewards();                      // 全部そろったあとの見せ札
+  if (all.length === 0) return { reward: null, isNew: false };
+  return { reward: all[Math.floor(rng() * all.length)] || all[all.length - 1], isNew: false };
+}
+
+/** 重み付き抽選。重みの合計が0以下なら等確率に倒す。 */
+function pickWeighted(items, weights) {
+  if (items.length === 0) return null;
+
+  let total = 0;
+  const safe = weights.map(w => (typeof w === "number" && isFinite(w) && w > 0) ? w : 0);
+  safe.forEach(w => { total += w; });
+
+  if (total <= 0) return items[Math.floor(rng() * items.length)] || items[items.length - 1];
+
+  let t = rng() * total;
+  for (let i = 0; i < items.length; i++) {
+    t -= safe[i];
+    if (t < 0) return items[i];
+  }
+  return items[items.length - 1];   // 丸め誤差の保険
+}
+
+/** クリア画面のごほうび欄。画像が無ければ名前だけで成立させる。 */
+function renderReward(reward, isNew) {
+  const img   = document.getElementById("reward-img");
+  const name  = document.getElementById("reward-name");
+  const badge = document.getElementById("reward-new");
+  const save  = document.getElementById("reward-save");
+  const box   = document.getElementById("reward-box");
+
+  box.hidden = !reward;
+  if (!reward) return;
+
+  name.textContent = reward.name || "";
+  badge.hidden = !isNew;
+
+  img.classList.remove("visible");   // 前回のフェードを解除してから貼り直す
+  img.hidden = true;
+  save.hidden = true;
+
+  if (!reward.src) {                 // src が無い絵。画像は出さず名前だけ残す
+    img.removeAttribute("src");
+    return;
+  }
+
+  img.alt = reward.name || "";
+  save.href = reward.src;
+  save.setAttribute("download",
+    "kabukura-rpg-" + reward.id + "." + (reward.src.split(".").pop() || "jpg"));
+  img.src = reward.src;
+}
+
+/** 読み込みの成否で、画像と保存リンクをまとめて出し入れする。 */
+(function setupReward() {
+  const img  = document.getElementById("reward-img");
+  const save = document.getElementById("reward-save");
 
   img.addEventListener("load", () => {
     img.hidden = false;
-    img.classList.add("visible");   // 0.6秒でフェードイン
-    fallback.hidden = true;
+    img.classList.add("visible");    // 0.6秒でフェードイン
     save.hidden = false;
   });
 
   img.addEventListener("error", () => {
-    img.hidden = true;              // 画像も保存リンクも消し、テキストだけ残す
+    img.hidden = true;               // 画像も保存リンクも消し、名前だけ残す
     save.hidden = true;
-    fallback.hidden = false;
   });
 })();
 
@@ -2580,8 +2691,15 @@ function loadProgress() {
   const unlocked = Array.isArray(b.unlockedTitles)
     ? b.unlockedTitles.filter(id => ids.indexOf(id) !== -1)   // 未知のIDは捨てる
     : [];
+  const rewardIds = allRewards().map(r => r.id);
+  const rewards = Array.isArray(b.unlockedRewards)
+    ? b.unlockedRewards.filter((id, i, arr) =>
+        rewardIds.indexOf(id) !== -1 && arr.indexOf(id) === i)   // 未知のIDと重複は捨てる
+    : [];
+
   return {
     unlockedTitles: unlocked,
+    unlockedRewards: rewards,
     clearCount:     (typeof b.clearCount === "number" && isFinite(b.clearCount) && b.clearCount > 0) ? Math.floor(b.clearCount) : 0,
     noTimeoutClear: b.noTimeoutClear === true,
   };
@@ -2591,7 +2709,7 @@ function loadProgress() {
  * 自己ベストと称号の保存。項目ごとに独立して良い方を残す。
  * 称号ぶん（earned）は showClear から渡される。
  */
-function saveBest(earned) {
+function saveBest(earned, newRewardId) {
   const prev = loadBest() || {};
   const prog = loadProgress();
   const time     = Math.round(state.totalMs);
@@ -2603,11 +2721,15 @@ function saveBest(earned) {
     if (merged.indexOf(id) === -1) merged.push(id);
   });
 
+  const rewards = prog.unlockedRewards.slice();
+  if (newRewardId && rewards.indexOf(newRewardId) === -1) rewards.push(newRewardId);
+
   const next = {
     bestTimeMs:   (typeof prev.bestTimeMs   === "number") ? Math.min(prev.bestTimeMs, time)      : time,
     bestAccuracy: (typeof prev.bestAccuracy === "number") ? Math.max(prev.bestAccuracy, accuracy): accuracy,
     bestCombo:    (typeof prev.bestCombo    === "number") ? Math.max(prev.bestCombo, combo)      : combo,
     unlockedTitles: merged,
+    unlockedRewards: rewards,
     clearCount:     earned ? earned.clearCount : prog.clearCount,
     noTimeoutClear: prog.noTimeoutClear || (earned ? earned.noTimeout : false),
     soundEnabled:   audio.enabled,
@@ -2702,6 +2824,11 @@ function renderTitleCount() {
   const total = TITLE_BASE.length + TITLE_CROWN.length;
   document.getElementById("title-titles").textContent =
     "称号 " + loadProgress().unlockedTitles.length + "/" + total;
+}
+
+function renderRewardCount() {
+  document.getElementById("title-rewards").textContent =
+    "イラスト " + loadProgress().unlockedRewards.length + "/" + allRewards().length;
 }
 
 /** タイトル画面の自己ベスト欄。データが無ければ非表示。 */
@@ -3024,10 +3151,10 @@ function syncOgpTags() {
 syncOgpTags();
 audio.enabled = loadSoundSetting();
 renderSoundToggle();
-buildClearRoster();
 buildProfileCards();
 renderBest();
 renderTitleCount();
+renderRewardCount();
 bootFlow();   // 初回はストーリー、以降はスタート画面。スタート画面での操作で音が解禁される
 </script>
 
