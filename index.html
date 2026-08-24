@@ -137,10 +137,16 @@
   /* 「はじめる」「人物紹介」「IME警告」「音」の横幅を揃える。
      高さはそれぞれの padding のままなので、主導線の「はじめる」は大きいまま。 */
   #btn-start,
-  #btn-profile,
+  #title-subnav,
   #btn-sound {
     width: var(--title-control-w);
     text-align: center;
+  }
+
+  /* 副次的な導線は2つ並べて、1行ぶんの高さに収める */
+  #title-subnav {
+    display: flex;
+    gap: 14px;
   }
 
   /* 警告は文言が折り返さないことを優先して、ボタンより広く取る */
@@ -710,10 +716,135 @@
     border: 1px solid var(--border);
   }
 
-  /* タイトルの「人物紹介」は副次的な導線なので小さめに */
-  #btn-profile {
-    padding: 8px 26px;
+  /* タイトルの「人物紹介」「ギャラリー」は副次的な導線なので小さめに */
+  #btn-profile,
+  #btn-gallery {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 0;
     font-size: 16px;
+  }
+
+  /* ---------- ギャラリー ---------- */
+
+  /* 拡大表示を画面に固定したいので、スクロールは中身側に持たせる */
+  #screen-gallery { overflow: hidden; }
+
+  #gallery-inner {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 22px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  #gallery-head {
+    font-size: 26px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+
+  #gallery-count {
+    font-size: 14px;
+    color: var(--text);
+    opacity: 0.85;
+  }
+
+  #gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 190px);
+    gap: 12px 14px;
+    justify-content: center;
+  }
+
+  .gallery-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* 16:9 の枠。画像・「？」・「準備中」のどれが入っても同じ寸法になる。 */
+  .gallery-thumb {
+    width: 190px;
+    height: 107px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 30px;
+    color: var(--untyped);
+  }
+  .gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-thumb.clickable { cursor: pointer; }
+  .gallery-thumb.clickable:hover { filter: brightness(1.15); }
+
+  /* 「準備中」は絵柄ではなく注記なので小さく出す */
+  .gallery-thumb.note {
+    font-size: 14px;
+    color: var(--text);
+    opacity: 0.5;
+  }
+
+  .gallery-name {
+    width: 190px;
+    font-size: 13px;
+    line-height: 1.35;
+    text-align: center;
+    color: var(--text);
+    opacity: 0.85;
+  }
+  .gallery-item.locked .gallery-name { opacity: 0.4; }
+
+  /* 拡大表示。画面いっぱいの黒幕で、どこを押しても閉じる。 */
+  #gallery-viewer {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.96);   /* 後ろのサムネイルが透けない濃さ */
+    cursor: pointer;
+  }
+
+  #gallery-viewer-img {
+    max-width: 92%;
+    max-height: 72%;
+    object-fit: contain;
+  }
+
+  #gallery-viewer-name {
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  #gallery-viewer-save {
+    font-size: 14px;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  #gallery-viewer-save:hover { filter: brightness(1.2); }
+
+  #gallery-viewer-close {
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.6;
   }
 
   /* ---------- クリア画面 ---------- */
@@ -860,6 +991,34 @@
     background: var(--border);
   }
 
+  /* まだ見ぬ称号。全部そろったら box ごと hidden になる。 */
+  #unseen-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+
+  #unseen-head {
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+
+  #unseen-name {
+    font-size: 19px;
+    color: var(--text);
+  }
+
+  /* 条件は称号名より一段弱く見せる */
+  #unseen-hint {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    opacity: 0.72;
+  }
+
   #clear-buttons { display: flex; gap: 18px; }
 </style>
 </head>
@@ -900,7 +1059,10 @@
     </div>
     <div id="title-controls">
       <button class="btn" id="btn-start">はじめる（Enter）</button>
-      <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
+      <div id="title-subnav">
+        <button class="btn btn-x" id="btn-profile" type="button">人物紹介</button>
+        <button class="btn btn-x" id="btn-gallery" type="button">ギャラリー</button>
+      </div>
       <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
       <div id="title-ime">⚠ 日本語入力（IME）はOFFにしてください</div>
     </div>
@@ -986,11 +1148,38 @@
     <button class="btn-restart" id="btn-restart-defeat" type="button" tabindex="-1">最初から始める</button>
   </section>
 
+  <!-- ギャラリー -->
+  <section class="screen" id="screen-gallery">
+   <div id="gallery-inner">
+    <div id="gallery-head">ギャラリー</div>
+    <div id="gallery-count">イラスト 0/11</div>
+    <div id="gallery-grid"></div>
+    <button class="btn" id="btn-gallery-back" type="button">タイトルへ戻る</button>
+   </div>
+   <div id="gallery-viewer" hidden>
+    <img id="gallery-viewer-img" alt="">
+    <div id="gallery-viewer-name"></div>
+    <a id="gallery-viewer-save" href="#" download>画像を保存</a>
+    <div id="gallery-viewer-close">クリックまたは Esc で閉じる</div>
+   </div>
+  </section>
+
   <!-- クリア画面 -->
   <section class="screen" id="screen-clear">
    <div id="clear-inner">
 
     <div id="clear-head">✨ コンプリート ✨</div>
+
+    <div id="reward-box">
+      <div id="reward-head">🎁 ごほうびイラスト</div>
+      <img id="reward-img" class="finale" alt="">
+      <div id="reward-name-row">
+        <span id="reward-new" hidden>NEW!</span>
+        <span id="reward-name"></span>
+      </div>
+      <a id="reward-save" href="#" download hidden>画像を保存</a>
+    </div>
+
     <div id="clear-title"></div>
 
     <dl id="clear-score">
@@ -1010,14 +1199,10 @@
       <div id="clear-tip-note"></div>
     </div>
 
-    <div id="reward-box">
-      <div id="reward-head">🎁 ごほうびイラスト</div>
-      <img id="reward-img" class="finale" alt="">
-      <div id="reward-name-row">
-        <span id="reward-new" hidden>NEW!</span>
-        <span id="reward-name"></span>
-      </div>
-      <a id="reward-save" href="#" download hidden>画像を保存</a>
+    <div id="unseen-box" hidden>
+      <div id="unseen-head">🏆 まだ見ぬ称号</div>
+      <div id="unseen-name"></div>
+      <div id="unseen-hint"></div>
     </div>
 
     <div id="clear-buttons">
@@ -1412,27 +1597,28 @@ const TIPS = [
 
 /* 称号（本体）。クリアタイムが maxMs 未満のうち、いちばん条件の厳しいものが付く。
    b01 は maxMs: null ＝ どれにも当てはまらないとき（3分以上）の受け皿。 */
+/* hint は「まだ見ぬ称号」で見せる獲得条件。空にすればその行だけ出なくなる。 */
 const TITLE_BASE = [
-  { id: "b01", name: "見習い投資家",           maxMs: null },      // 3分以上
-  { id: "b02", name: "積立の徒",               maxMs: 180000 },
-  { id: "b03", name: "分散の使い手",           maxMs: 150000 },
-  { id: "b04", name: "複利の探究者",           maxMs: 120000 },
-  { id: "b05", name: "相場を読む者",           maxMs: 100000 },
-  { id: "b06", name: "詠唱者",                 maxMs: 80000 },
-  { id: "b07", name: "インデックスの魔術師",   maxMs: 60000 },
-  { id: "b08", name: "市場の支配者",           maxMs: 50000 },
-  { id: "b09", name: "大賢者",                 maxMs: 40000 },
-  { id: "b10", name: "理外の存在",             maxMs: 30000 },
+  { id: "b01", name: "見習い投資家",           maxMs: null,   hint: "3分以上でクリア" },
+  { id: "b02", name: "積立の徒",               maxMs: 180000, hint: "2分30秒〜3分でクリア" },
+  { id: "b03", name: "分散の使い手",           maxMs: 150000, hint: "2分〜2分30秒でクリア" },
+  { id: "b04", name: "複利の探究者",           maxMs: 120000, hint: "1分40秒〜2分でクリア" },
+  { id: "b05", name: "相場を読む者",           maxMs: 100000, hint: "1分20秒〜1分40秒でクリア" },
+  { id: "b06", name: "詠唱者",                 maxMs: 80000,  hint: "1分〜1分20秒でクリア" },
+  { id: "b07", name: "インデックスの魔術師",   maxMs: 60000,  hint: "50秒〜1分でクリア" },
+  { id: "b08", name: "市場の支配者",           maxMs: 50000,  hint: "40秒〜50秒でクリア" },
+  { id: "b09", name: "大賢者",                 maxMs: 40000,  hint: "30秒〜40秒でクリア" },
+  { id: "b10", name: "理外の存在",             maxMs: 30000,  hint: "30秒未満でクリア" },
 ];
 
 /* 称号（冠）。条件を満たしたものはすべて記録し、表示は priority 最小の1つだけ。 */
 const TITLE_CROWN = [
-  { id: "c01", name: "✨ 邂逅の",         priority: 1 },
-  { id: "c02", name: "🎯 一片の狂いなき", priority: 2 },
-  { id: "c03", name: "⚡ 電光石火の",     priority: 3 },
-  { id: "c04", name: "🔥 無傷の",         priority: 4 },
-  { id: "c05", name: "👑 常勝の",         priority: 5 },
-  { id: "c06", name: "🌱 芽吹きの",       priority: 6 },
+  { id: "c01", name: "✨ 邂逅の",         priority: 1, hint: "ごく稀に訪れる" },
+  { id: "c02", name: "🎯 一片の狂いなき", priority: 2, hint: "正確率100%でクリア" },
+  { id: "c03", name: "⚡ 電光石火の",     priority: 3, hint: "最大コンボ150以上" },
+  { id: "c04", name: "🔥 無傷の",         priority: 4, hint: "一度も時間切れせずにクリア" },
+  { id: "c05", name: "👑 常勝の",         priority: 5, hint: "累計10回クリア" },
+  { id: "c06", name: "🌱 芽吹きの",       priority: 6, hint: "初めてクリア" },
 ];
 
 /* =========================================================================
@@ -1813,6 +1999,7 @@ const SCREENS = {
   start:   document.getElementById("screen-start"),
   title:   document.getElementById("screen-title"),
   profile: document.getElementById("screen-profile"),
+  gallery: document.getElementById("screen-gallery"),
   intro:  document.getElementById("screen-intro"),
   final:  document.getElementById("screen-final"),
   game:   document.getElementById("screen-game"),
@@ -2136,7 +2323,7 @@ function enterTitle() {
 
 // ボタン類のクリック音はまとめて拾う（個別の listener を汚さない）
 document.getElementById("stage").addEventListener("click", (e) => {
-  if (e.target.closest("button, #reward-save")) playSe(AUDIO.se.click);
+  if (e.target.closest("button, #reward-save, #gallery-viewer-save, .gallery-thumb.clickable")) playSe(AUDIO.se.click);
 });
 
 // 自動再生制限の解除は「はじめる」と音トグルから。
@@ -2499,6 +2686,7 @@ function showClear() {
   renderReward(gained.reward, gained.isNew);
 
   saveBest(earned, gained.isNew ? gained.reward.id : null);   // 更新はクリア時のみ
+  renderUnseenTitle();      // 保存のあと。今回そろえた称号は候補から外れる
   renderBest();
   renderTitleCount();
   renderRewardCount();
@@ -2549,6 +2737,111 @@ function buildProfileCards() {
     box.appendChild(card);
   });
 }
+
+/* ---------- ギャラリー ---------- */
+
+/**
+ * 11枚ぶんのカードを作る。獲得済みはサムネイル、未獲得は「？」。
+ * 画像が無い（src が null／読み込めない）ものは「準備中」にして拡大もさせない。
+ */
+function buildGallery() {
+  const grid  = document.getElementById("gallery-grid");
+  const owned = loadProgress().unlockedRewards;
+  const list  = allRewards();
+
+  document.getElementById("gallery-count").textContent =
+    "イラスト " + owned.length + "/" + list.length;
+
+  grid.textContent = "";
+
+  list.forEach(r => {
+    const has  = owned.indexOf(r.id) !== -1;
+    const item = document.createElement("div");
+    item.className = "gallery-item " + (has ? "owned" : "locked");
+
+    const thumb = document.createElement("div");
+    thumb.className = "gallery-thumb";
+
+    const asNote = (text) => {      // 画像を諦めて注記に差し替える
+      thumb.textContent = text;
+      thumb.classList.add("note");
+      thumb.classList.remove("clickable");
+    };
+
+    if (!has) {
+      thumb.textContent = "？";
+    } else if (!r.src) {
+      asNote("準備中");
+    } else {
+      const img = document.createElement("img");
+      img.alt = r.name || "";
+      thumb.appendChild(img);
+      img.addEventListener("error", () => {
+        if (img.parentNode !== thumb) return;   // 差し替え済みなら触らない
+        asNote("準備中");
+      });
+      img.src = r.src;                          // 追加してから読み込ませる
+
+      thumb.classList.add("clickable");
+      thumb.addEventListener("click", () => {
+        if (thumb.classList.contains("note")) return;   // 準備中は拡大しない
+        openGalleryViewer(r);
+      });
+    }
+
+    const name = document.createElement("div");
+    name.className = "gallery-name";
+    name.textContent = r.name || "";
+
+    item.append(thumb, name);
+    grid.appendChild(item);
+  });
+}
+
+/** 拡大表示。原寸のまま、はみ出すぶんだけ画面に合わせて縮める。 */
+function openGalleryViewer(reward) {
+  if (!reward || !reward.src) return;
+
+  const img  = document.getElementById("gallery-viewer-img");
+  const save = document.getElementById("gallery-viewer-save");
+
+  img.alt = reward.name || "";
+  img.src = reward.src;
+  document.getElementById("gallery-viewer-name").textContent = reward.name || "";
+
+  save.href = reward.src;
+  save.setAttribute("download",
+    "kabukura-rpg-" + reward.id + "." + (reward.src.split(".").pop() || "jpg"));
+
+  document.getElementById("gallery-viewer").hidden = false;
+}
+
+/** 閉じたときだけ true を返す（Esc の二重処理を避けるため）。 */
+function closeGalleryViewer() {
+  const v = document.getElementById("gallery-viewer");
+  if (v.hidden) return false;
+  v.hidden = true;
+  return true;
+}
+
+document.getElementById("gallery-viewer").addEventListener("click", closeGalleryViewer);
+
+// 保存リンクを押したときは閉じない（閉じると保存が始まる前に消える）
+document.getElementById("gallery-viewer-save").addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
+document.getElementById("btn-gallery").addEventListener("click", () => {
+  buildGallery();
+  document.getElementById("gallery-inner").scrollTop = 0;
+  showScreen("gallery");         // タイトルBGMはそのまま鳴らし続ける
+});
+
+document.getElementById("btn-gallery-back").addEventListener("click", () => {
+  closeGalleryViewer();
+  document.getElementById("gallery-inner").scrollTop = 0;
+  showScreen("title");
+});
 
 /* ---------- ごほうびイラスト ---------- */
 
@@ -2753,6 +3046,26 @@ function baseTitleFor(totalMs) {
     if (totalMs < t.maxMs && (best === null || t.maxMs < best.maxMs)) best = t;
   });
   return best || TITLE_BASE[0];   // どれにも届かなければ b01
+}
+
+/**
+ * まだ持っていない称号を1つだけ見せる。本体・冠を区別せず同じ確率で選ぶ。
+ * 16種すべて持っていればブロックごと消す。
+ */
+function renderUnseenTitle() {
+  const box   = document.getElementById("unseen-box");
+  const owned = loadProgress().unlockedTitles;
+  const pool  = TITLE_BASE.concat(TITLE_CROWN).filter(t => owned.indexOf(t.id) === -1);
+
+  if (pool.length === 0) { box.hidden = true; return; }
+
+  const pick = pool[Math.floor(rng() * pool.length)] || pool[pool.length - 1];
+  const hint = document.getElementById("unseen-hint");
+
+  document.getElementById("unseen-name").textContent = "「" + (pick.name || "") + "」";
+  hint.textContent = pick.hint || "";
+  hint.hidden = !pick.hint;      // 条件が空なら行ごと消す（隙間が空かないように）
+  box.hidden = false;
 }
 
 /** このプレイで獲得した冠。条件を満たしたものをすべて返す。 */
@@ -3078,6 +3391,15 @@ document.addEventListener("keydown", (e) => {
       e.preventDefault();
       unlockAudio();     // キーボード操作もユーザー操作として扱われる
       startGame();
+    }
+    return;
+  }
+
+  if (currentScreen === "gallery") {
+    // 打鍵は判定対象外。Esc だけ拡大表示を閉じるのに使う。
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeGalleryViewer();
     }
     return;
   }
