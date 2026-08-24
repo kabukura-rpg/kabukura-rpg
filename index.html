@@ -462,7 +462,15 @@
   }
   .profile-body { flex: 1; min-width: 0; }
   .profile-name { font-size: 20px; }
-  .profile-handle { font-size: 14px; margin-top: 2px; }
+  /* リンクは1本でも複数でも同じ並べ方。入りきらなければ折り返す。 */
+  .profile-handle {
+    margin-top: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 14px;
+    font-size: 14px;
+  }
   .profile-handle a {
     color: var(--accent);
     text-decoration: none;
@@ -474,6 +482,7 @@
     font-size: 15px;
     line-height: 1.6;
     opacity: 0.9;
+    white-space: pre-line;      /* profileText の改行をそのまま出す */
   }
 
   /* ---------- ゲーム画面 ---------- */
@@ -1354,7 +1363,13 @@ const CHARACTERS = [
   },
   { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "四天王の闇担当。メンタルとHPは常に瀕死ですが、積立だけは止まりません。", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: "assets/nempanx.jpeg", profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
-  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",      image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: "assets/ponkotsux.jpg", profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
+  { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",
+    links: [
+      { label: "@ponkotsu_queen", url: "https://x.com/ponkotsu_queen" },
+      { label: "pixiv",           url: "https://www.pixiv.net/users/714383" },
+      { label: "小説家になろう",   url: "https://mypage.syosetu.com/1693824/" },      // ★要差し替え
+    ],
+    image: "assets/ponkotsu.jpeg", imageDefeat: "assets/ponkotsuLose.jpeg", imageVictory: "assets/ponkotsuWin.jpeg", emoji: "👑", profileImage: "assets/ponkotsux.jpg", profileText: "", entryLine: "エレノア・ド・フィナンシア、まいりますわ！", defeatLine: "くっ……お見事ですわ……！", victoryLine: "文句があるならいつでもフィナンツェへいらっしゃい!!" },
 ];
 
 /**
@@ -1364,9 +1379,9 @@ const CHARACTERS = [
  */
 const REWARDS = [
   { id: "solo_micchan",  src: "assets/miccahnSolo.jpeg",  name: "みっちゃん" },   // ファイル名は miccahn（配布物のまま）
-  { id: "solo_nimushi",  src: "assets/nimushiSolo.jpeg",  name: "にむし" },
-  { id: "solo_nempan",   src: "assets/nempanSolo.jpeg",   name: "ねむぱん" },
   { id: "solo_ponkotsu", src: "assets/ponkotsuSolo.jpeg", name: "ポンコツ女王" },
+  { id: "solo_nempan",   src: "assets/nempanSolo.jpeg",   name: "ねむぱん" },
+  { id: "solo_nimushi",  src: "assets/nimushiSolo.jpeg",  name: "にむし" },
 
   { id: "pair_mi_ni", src: "assets/miccahnNimushi.jpeg",  name: "みっちゃん & にむし" },   // 同上
   { id: "pair_mi_ne", src: "assets/nempanMicchan.jpeg",   name: "みっちゃん & ねむぱん" },
@@ -2694,6 +2709,31 @@ function showClear() {
 }
 
 /** 人物紹介のカード。画像は profileImage → image → emoji の順に落ちる。 */
+/**
+ * 表示するリンク。links があればそれを、無ければ handle から X のリンクを1本作る
+ * （links を書いていない旧データでも従来どおり動かすため）。
+ */
+function profileLinks(c) {
+  if (Array.isArray(c.links)) {
+    return c.links
+      .filter(l => l && typeof l.url === "string" && l.url)
+      .map(l => ({ label: (l.label || l.url), url: l.url }));
+  }
+  if (typeof c.handle === "string" && c.handle) {
+    return [{ label: c.handle, url: "https://x.com/" + c.handle.replace(/^@/, "") }];
+  }
+  return [];
+}
+
+/** 紹介文。配列なら1要素＝1行、文字列なら中の \n をそのまま改行として使う。 */
+function profileTextOf(c) {
+  const v = c.profileText;
+  if (Array.isArray(v)) {
+    return v.map(line => (line == null ? "" : String(line))).join("\n").trim();
+  }
+  return (typeof v === "string") ? v.trim() : "";
+}
+
 function buildProfileCards() {
   const box = document.getElementById("profile-cards");
   box.textContent = "";
@@ -2715,17 +2755,20 @@ function buildProfileCards() {
 
     const handle = document.createElement("div");
     handle.className = "profile-handle";
-    const link = document.createElement("a");
-    link.href = "https://x.com/" + c.handle.replace(/^@/, "");
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = c.handle;
-    handle.appendChild(link);
+    profileLinks(c).forEach(l => {
+      const link = document.createElement("a");
+      link.href = l.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = l.label;
+      handle.appendChild(link);
+    });
+    handle.hidden = (handle.childNodes.length === 0);   // リンクが1本も無ければ行ごと出さない
 
     body.append(name, handle);
 
     // 紹介文が空ならブロックごと出さない（余白だけ空くのを避ける）
-    const text = (typeof c.profileText === "string") ? c.profileText.trim() : "";
+    const text = profileTextOf(c);
     if (text) {
       const intro = document.createElement("div");
       intro.className = "profile-text";
