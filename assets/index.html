@@ -335,16 +335,6 @@
   #title-titles,
   #title-rewards { color: var(--accent); }
 
-  /* 称号数は専用画面への入口。菱形区切りと干渉しないよう下線は付けず、色変化だけでクリック可能と示す。 */
-  #title-titles {
-    cursor: pointer;
-  }
-  #title-titles:hover,
-  #title-titles:focus-visible {
-    color: #F4C96B;
-    outline: none;
-  }
-
 
   /* キャラの顔。画像でも絵文字でも同じ寸法の箱に収めるので、
      混在しても高さが揃う。寸法は --face-size（:root の変数）で決まる。 */
@@ -1070,167 +1060,6 @@
     opacity: 0.6;
   }
 
-  /* ---------- 称号一覧・装備画面 ---------- */
-
-  #screen-titles {
-    overflow: hidden;
-  }
-
-  #titles-inner {
-    width: 100%;
-    height: 100%;
-    padding: 24px 34px 22px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-  }
-
-  #titles-head {
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", serif;
-    font-size: 30px;
-    letter-spacing: 0.12em;
-    color: var(--accent);
-  }
-
-  #titles-current-box {
-    width: 650px;
-    padding: 11px 18px;
-    text-align: center;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-  }
-
-  #titles-current-label {
-    margin-bottom: 4px;
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    color: var(--accent);
-  }
-
-  #titles-current {
-    min-height: 28px;
-    font-size: 21px;
-    line-height: 1.35;
-    color: var(--text);
-  }
-
-  #titles-columns {
-    width: 100%;
-    flex: 1;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: 1fr 1.35fr;
-    gap: 22px;
-  }
-
-  .titles-group {
-    min-height: 0;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    background: rgba(42, 26, 18, 0.62);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: hidden;              /* リストが枠の外へはみ出さない */
-  }
-
-  .titles-group-head {
-    margin-bottom: 9px;
-    text-align: center;
-    font-size: 16px;
-    color: var(--accent);
-    letter-spacing: 0.06em;
-  }
-
-  .titles-list {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    overflow-y: auto;              /* 本体10種など、収まらない分だけこの枠内でスクロール */
-    overscroll-behavior: contain;
-    padding-right: 4px;
-  }
-
-  /* スクロールバーはゲーム画面の配色に馴染ませる。必要な列にだけ表示される。 */
-  .titles-list::-webkit-scrollbar { width: 7px; }
-  .titles-list::-webkit-scrollbar-track { background: rgba(30, 24, 18, 0.45); }
-  .titles-list::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 4px;
-  }
-  .titles-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-  .title-equip-item {
-    width: 100%;
-    height: 29px;
-    padding: 0 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    font-family: inherit;
-    font-size: 14px;
-    text-align: left;
-    color: var(--text);
-    background: #24170F;
-    border: 1px solid #4A3320;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .title-equip-item:hover:not(:disabled) {
-    border-color: var(--accent);
-    filter: brightness(1.08);
-  }
-
-  .title-equip-item.selected {
-    color: #FFF3DC;
-    background: #3A2616;
-    border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px rgba(212, 160, 60, 0.25);
-  }
-
-  .title-equip-item:disabled {
-    cursor: default;
-    opacity: 0.38;
-  }
-
-  .title-equip-name {
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .title-equip-state {
-    width: 18px;
-    flex: none;
-    text-align: center;
-    color: var(--accent);
-  }
-
-  #titles-foot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 7px;
-  }
-
-  #titles-note {
-    font-size: 12px;
-    color: var(--text);
-    opacity: 0.62;
-  }
-
-  #btn-titles-back {
-    padding: 10px 28px;
-    font-size: 16px;
-  }
-
   /* ---------- クリア画面 ---------- */
 
   /* 集合画像が入ると 640px に収まらないのでスクロールさせる。
@@ -1313,12 +1142,6 @@
     letter-spacing: 0.06em;
   }
 
-  #clear-title-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
   #clear-title {
     font-size: 24px;
     color: var(--text);
@@ -1326,101 +1149,6 @@
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 4px;
-  }
-
-  #btn-clear-title-change {
-    padding: 7px 12px;
-    font-family: inherit;
-    font-size: 13px;
-    color: var(--accent);
-    background: rgba(42, 26, 18, 0.92);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  #btn-clear-title-change:hover { filter: brightness(1.15); }
-
-  /* 獲得済み称号から表示・X共有用の称号を選ぶモーダル。 */
-  #title-picker {
-    position: absolute;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.78);
-  }
-
-  #title-picker-card {
-    width: 560px;
-    padding: 26px 30px;
-    background: var(--bg);
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.7);
-  }
-
-  #title-picker-head {
-    margin-bottom: 6px;
-    text-align: center;
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", serif;
-    font-size: 27px;
-    color: var(--accent);
-  }
-
-  #title-picker-note {
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 13px;
-    color: var(--text);
-    opacity: 0.72;
-  }
-
-  .title-picker-field {
-    display: grid;
-    grid-template-columns: 110px 1fr;
-    align-items: center;
-    gap: 14px;
-    margin-top: 12px;
-  }
-
-  .title-picker-field label {
-    color: var(--accent);
-    font-size: 15px;
-  }
-
-  .title-picker-field select {
-    width: 100%;
-    padding: 10px 12px;
-    font-family: inherit;
-    font-size: 16px;
-    color: var(--text);
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-  }
-
-  #title-picker-preview {
-    margin-top: 20px;
-    padding: 13px 16px;
-    text-align: center;
-    font-size: 20px;
-    color: var(--text);
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-  }
-
-  #title-picker-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    margin-top: 22px;
-  }
-
-  #title-picker-buttons .btn {
-    padding: 11px 24px;
-    font-size: 16px;
   }
 
   #clear-tip {
@@ -1568,37 +1296,8 @@
       <div id="title-stats">
         <span id="title-best">自己ベスト ——</span>
         <span id="title-accuracy">正確率 ——</span>
-        <span id="title-titles" role="button" tabindex="0" aria-label="称号一覧を開く">称号 0/16</span>
+        <span id="title-titles">称号 0/16</span>
         <span id="title-rewards">イラスト 0/11</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- 称号一覧・装備画面。タイトル画面の「称号 N/16」から開く。 -->
-  <section class="screen" id="screen-titles">
-    <div id="titles-inner">
-      <div id="titles-head">称号</div>
-
-      <div id="titles-current-box">
-        <div id="titles-current-label">現在の称号</div>
-        <div id="titles-current">まだ称号を獲得していません</div>
-      </div>
-
-      <div id="titles-columns">
-        <div class="titles-group">
-          <div class="titles-group-head">【冠称号】</div>
-          <div class="titles-list" id="titles-crown-list"></div>
-        </div>
-
-        <div class="titles-group">
-          <div class="titles-group-head">【本体称号】</div>
-          <div class="titles-list" id="titles-base-list"></div>
-        </div>
-      </div>
-
-      <div id="titles-foot">
-        <div id="titles-note">● 装備中　✓ 獲得済み　🔒 未獲得</div>
-        <button class="btn" id="btn-titles-back" type="button">タイトルへ戻る</button>
       </div>
     </div>
   </section>
@@ -1723,10 +1422,7 @@
       <a id="reward-save" href="#" download hidden>画像を保存</a>
     </div>
 
-    <div id="clear-title-row">
-      <div id="clear-title"></div>
-      <button id="btn-clear-title-change" type="button">称号を変更</button>
-    </div>
+    <div id="clear-title"></div>
 
     <dl id="clear-score">
       <dt>クリアタイム</dt><dd id="clear-time">—</dd>
@@ -1758,30 +1454,6 @@
 
    </div>
   </section>
-
-  <!-- 称号選択。クリア画面の「称号を変更」と「Xで結果を投稿」から開く。 -->
-  <div id="title-picker" hidden>
-    <div id="title-picker-card" role="dialog" aria-modal="true" aria-labelledby="title-picker-head">
-      <div id="title-picker-head">称号を選ぶ</div>
-      <div id="title-picker-note">獲得済みの称号から選択できます</div>
-
-      <div class="title-picker-field">
-        <label for="title-picker-crown">冠称号</label>
-        <select id="title-picker-crown"></select>
-      </div>
-      <div class="title-picker-field">
-        <label for="title-picker-base">本体称号</label>
-        <select id="title-picker-base"></select>
-      </div>
-
-      <div id="title-picker-preview"></div>
-
-      <div id="title-picker-buttons">
-        <button class="btn btn-x" id="btn-title-picker-cancel" type="button">戻る</button>
-        <button class="btn" id="btn-title-picker-apply" type="button">この称号にする</button>
-      </div>
-    </div>
-  </div>
 
 </div>
 
@@ -2656,7 +2328,6 @@ const SCREENS = {
   story:   document.getElementById("screen-story"),
   start:   document.getElementById("screen-start"),
   title:   document.getElementById("screen-title"),
-  titles:  document.getElementById("screen-titles"),
   profile: document.getElementById("screen-profile"),
   gallery: document.getElementById("screen-gallery"),
   soundtrack: document.getElementById("screen-soundtrack"),
@@ -2730,8 +2401,6 @@ const state = {
   stageCorrect: 0,
   stageMiss: 0,
   timeoutCount: 0,     // このプレイで時間切れになった回数（冠 c04 の判定に使う）
-  clearTitleBaseId: null,   // クリア画面・X共有に使う本体称号
-  clearTitleCrownId: null,  // クリア画面・X共有に使う冠称号。null は冠なし
 };
 
 /* ---------- ストーリー画面 ---------- */
@@ -3010,25 +2679,6 @@ document.getElementById("btn-profile-back").addEventListener("click", () => {
   document.getElementById("screen-profile").scrollTop = 0;
   showScreen("title");            // 人物紹介からの復帰。BGMはタイトルのまま鳴り続ける
 });
-
-function openTitlesScreen() {
-  renderTitlesScreen();
-  showScreen("titles");            // タイトルBGMはそのまま鳴らし続ける
-}
-
-const titleCountLink = document.getElementById("title-titles");
-titleCountLink.addEventListener("click", openTitlesScreen);
-titleCountLink.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter" && e.key !== " ") return;
-  e.preventDefault();
-  e.stopPropagation();              // タイトル画面の Enter=ゲーム開始へ流さない
-  openTitlesScreen();
-});
-
-document.getElementById("btn-titles-back").addEventListener("click", () => {
-  showScreen("title");
-});
-
 document.getElementById("btn-replay").addEventListener("click", startGame);
 
 document.getElementById("btn-share-defeat").addEventListener("click", (e) => {
@@ -3058,23 +2708,7 @@ document.getElementById("btn-timeup-retry").addEventListener("click", (e) => {
 
 document.getElementById("btn-share-clear").addEventListener("click", (e) => {
   e.currentTarget.blur();
-  openTitlePicker(true);
-});
-
-document.getElementById("btn-clear-title-change").addEventListener("click", (e) => {
-  e.currentTarget.blur();
-  openTitlePicker(false);
-});
-
-document.getElementById("title-picker-base").addEventListener("change", renderTitlePickerPreview);
-document.getElementById("title-picker-crown").addEventListener("change", renderTitlePickerPreview);
-
-document.getElementById("btn-title-picker-cancel").addEventListener("click", closeTitlePicker);
-document.getElementById("btn-title-picker-apply").addEventListener("click", applyTitlePicker);
-
-// 黒い余白をクリックしたときも閉じる。カード内のクリックでは閉じない。
-document.getElementById("title-picker").addEventListener("click", (e) => {
-  if (e.target === e.currentTarget) closeTitlePicker();
+  shareClear();
 });
 
 /* ---------- ゲーム ---------- */
@@ -3374,6 +3008,7 @@ function showClear() {
   document.getElementById("clear-accuracy").textContent = accuracyPercent() + "%";
 
   const earned = resolveTitles();
+  document.getElementById("clear-title").textContent = earned.text;
 
   renderTip();
 
@@ -3381,19 +3016,7 @@ function showClear() {
   const gained = drawReward();
   renderReward(gained.reward, gained.isNew);
 
-  // 先に保存することで、今回初めて取った称号も直後の称号選択で選べる。
   saveBest(earned, gained.isNew ? gained.reward.id : null);   // 更新はクリア時のみ
-
-  // 装備済み称号があれば維持。旧データなどで未設定なら今回の自動称号を初期装備にする。
-  let equipped = equippedTitleIds();
-  if (!loadProgress().selectedBaseTitle) {
-    saveEquippedTitle(earned.base.id, earned.crown ? earned.crown.id : null);
-    equipped = equippedTitleIds();
-  }
-  state.clearTitleBaseId  = equipped.baseId || earned.base.id;
-  state.clearTitleCrownId = equipped.crownId || null;
-  renderSelectedClearTitle();
-
   renderUnseenTitle();      // 保存のあと。今回そろえた称号は候補から外れる
   renderBest();
   renderTitleCount();
@@ -3812,213 +3435,9 @@ function renderReward(reward, isNew) {
   });
 })();
 
-/**
- * 永続化された「装備中」の称号を返す。
- * 旧データに選択値が無い場合は、自己ベスト相当の本体＋所持冠の最高優先度を仮の初期値にする。
- */
-function equippedTitleIds() {
-  const prog = loadProgress();
-  const owned = prog.unlockedTitles;
-  const hasSavedSelection = !!prog.selectedBaseTitle;
-  let baseId = prog.selectedBaseTitle;
-  let crownId = prog.selectedCrownTitle;
-
-  // 保存済みなら「冠なし（null）」もユーザーの明示選択としてそのまま尊重する。
-  if (!hasSavedSelection && owned.length > 0) {
-    const best = loadBest() || {};
-    const autoBase = (typeof best.bestTimeMs === "number") ? baseTitleFor(best.bestTimeMs) : null;
-    if (autoBase && owned.indexOf(autoBase.id) !== -1) baseId = autoBase.id;
-    if (!baseId) {
-      const firstOwnedBase = TITLE_BASE.find(t => owned.indexOf(t.id) !== -1);
-      baseId = firstOwnedBase ? firstOwnedBase.id : null;
-    }
-
-    const ownedCrowns = TITLE_CROWN
-      .filter(t => owned.indexOf(t.id) !== -1)
-      .slice()
-      .sort((a, b) => a.priority - b.priority);
-    crownId = ownedCrowns.length ? ownedCrowns[0].id : null;
-  }
-
-  return { baseId, crownId };
-}
-
-/** 装備中の称号を localStorage に保存する。未獲得称号は保存しない。 */
-function saveEquippedTitle(baseId, crownId) {
-  const prev = loadBest() || {};
-  const prog = loadProgress();
-  const owned = prog.unlockedTitles;
-
-  if (!baseId || owned.indexOf(baseId) === -1 || !TITLE_BASE.some(t => t.id === baseId)) return false;
-  if (crownId && (owned.indexOf(crownId) === -1 || !TITLE_CROWN.some(t => t.id === crownId))) return false;
-
-  prev.selectedBaseTitle = baseId;
-  prev.selectedCrownTitle = crownId || null;
-  try {
-    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-/** 装備画面の1行を作る。 */
-function createTitleEquipButton(item, kind, owned, selectedId) {
-  const unlocked = (item === null) || owned.indexOf(item.id) !== -1;
-  const id = item ? item.id : "";
-  const name = item ? item.name : "冠なし";
-  const selected = (selectedId || "") === id;
-
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "title-equip-item" + (selected ? " selected" : "");
-  btn.disabled = !unlocked;
-  btn.title = item && item.hint ? item.hint : "";
-
-  const nameEl = document.createElement("span");
-  nameEl.className = "title-equip-name";
-  nameEl.textContent = unlocked ? name : "？？？";
-
-  const stateEl = document.createElement("span");
-  stateEl.className = "title-equip-state";
-  stateEl.textContent = selected ? "●" : (unlocked ? "✓" : "🔒");
-
-  btn.appendChild(nameEl);
-  btn.appendChild(stateEl);
-
-  if (unlocked) {
-    btn.addEventListener("click", () => {
-      const current = equippedTitleIds();
-      const nextBase = kind === "base" ? id : current.baseId;
-      const nextCrown = kind === "crown" ? (id || null) : current.crownId;
-      if (!nextBase) return;
-      saveEquippedTitle(nextBase, nextCrown);
-      renderTitlesScreen();
-    });
-  }
-  return btn;
-}
-
-/** タイトル画面から開く称号一覧を描画する。 */
-function renderTitlesScreen() {
-  const prog = loadProgress();
-  const owned = prog.unlockedTitles;
-  const equipped = equippedTitleIds();
-  const currentEl = document.getElementById("titles-current");
-
-  if (!equipped.baseId) {
-    currentEl.textContent = "まだ称号を獲得していません";
-  } else {
-    currentEl.textContent = selectedClearTitleText(equipped.baseId, equipped.crownId);
-  }
-
-  const crownList = document.getElementById("titles-crown-list");
-  const baseList = document.getElementById("titles-base-list");
-  crownList.textContent = "";
-  baseList.textContent = "";
-
-  crownList.appendChild(createTitleEquipButton(null, "crown", owned, equipped.crownId));
-  TITLE_CROWN.forEach(t => crownList.appendChild(
-    createTitleEquipButton(t, "crown", owned, equipped.crownId)
-  ));
-  TITLE_BASE.forEach(t => baseList.appendChild(
-    createTitleEquipButton(t, "base", owned, equipped.baseId)
-  ));
-}
-
-/** 現在選択中の称号を文字列にする。 */
-function selectedClearTitleText(baseId, crownId) {
-  const base = TITLE_BASE.find(t => t.id === baseId) || baseTitleFor(Math.round(state.totalMs));
-  const crown = crownId ? TITLE_CROWN.find(t => t.id === crownId) : null;
-  return (crown ? crown.name + " " : "") + base.name;
-}
-
-function renderSelectedClearTitle() {
-  document.getElementById("clear-title").textContent =
-    selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId);
-}
-
-let titlePickerForShare = false;
-
-/** 獲得済み称号だけを候補にして選択画面を開く。 */
-function openTitlePicker(forShare) {
-  const prog = loadProgress();
-  const owned = prog.unlockedTitles;
-  const baseSelect = document.getElementById("title-picker-base");
-  const crownSelect = document.getElementById("title-picker-crown");
-
-  baseSelect.textContent = "";
-  TITLE_BASE.forEach(t => {
-    if (owned.indexOf(t.id) === -1) return;
-    const option = document.createElement("option");
-    option.value = t.id;
-    option.textContent = t.name;
-    baseSelect.appendChild(option);
-  });
-
-  crownSelect.textContent = "";
-  const none = document.createElement("option");
-  none.value = "";
-  none.textContent = "冠なし";
-  crownSelect.appendChild(none);
-  TITLE_CROWN.forEach(t => {
-    if (owned.indexOf(t.id) === -1) return;
-    const option = document.createElement("option");
-    option.value = t.id;
-    option.textContent = t.name;
-    crownSelect.appendChild(option);
-  });
-
-  // 現在表示している称号を初期選択にする。
-  if (state.clearTitleBaseId && owned.indexOf(state.clearTitleBaseId) !== -1) {
-    baseSelect.value = state.clearTitleBaseId;
-  }
-  crownSelect.value = state.clearTitleCrownId || "";
-
-  titlePickerForShare = !!forShare;
-  document.getElementById("btn-title-picker-apply").textContent =
-    titlePickerForShare ? "この称号でXに投稿" : "この称号にする";
-
-  renderTitlePickerPreview();
-  document.getElementById("title-picker").hidden = false;
-}
-
-function closeTitlePicker() {
-  document.getElementById("title-picker").hidden = true;
-  titlePickerForShare = false;
-}
-
-function renderTitlePickerPreview() {
-  const baseId = document.getElementById("title-picker-base").value;
-  const crownId = document.getElementById("title-picker-crown").value || null;
-  document.getElementById("title-picker-preview").textContent =
-    selectedClearTitleText(baseId, crownId);
-}
-
-function applyTitlePicker() {
-  const baseId = document.getElementById("title-picker-base").value;
-  const crownId = document.getElementById("title-picker-crown").value || null;
-  const owned = loadProgress().unlockedTitles;
-
-  // DOMを書き換えられても未獲得称号は採用しない。
-  if (owned.indexOf(baseId) === -1) return;
-  if (crownId && owned.indexOf(crownId) === -1) return;
-
-  state.clearTitleBaseId = baseId;
-  state.clearTitleCrownId = crownId;
-  saveEquippedTitle(baseId, crownId);
-  renderSelectedClearTitle();
-
-  const shouldShare = titlePickerForShare;
-  closeTitlePicker();
-  if (shouldShare) shareClear();
-}
-
 function shareClear() {
-  const titleText = selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId);
   openShare(
     "「" + TITLE + "」コンプリート！\n" +
-    "🏆 " + titleText + "\n" +
     "⏱ " + formatTime(state.totalMs) +
     " / 最大コンボ " + state.maxCombo +
     " / 正確率 " + accuracyPercent() + "%\n\n" +
@@ -4060,16 +3479,9 @@ function loadProgress() {
         rewardIds.indexOf(id) !== -1 && arr.indexOf(id) === i)   // 未知のIDと重複は捨てる
     : [];
 
-  const selectedBaseTitle = (typeof b.selectedBaseTitle === "string" && unlocked.indexOf(b.selectedBaseTitle) !== -1
-    && TITLE_BASE.some(t => t.id === b.selectedBaseTitle)) ? b.selectedBaseTitle : null;
-  const selectedCrownTitle = (typeof b.selectedCrownTitle === "string" && unlocked.indexOf(b.selectedCrownTitle) !== -1
-    && TITLE_CROWN.some(t => t.id === b.selectedCrownTitle)) ? b.selectedCrownTitle : null;
-
   return {
     unlockedTitles: unlocked,
     unlockedRewards: rewards,
-    selectedBaseTitle,
-    selectedCrownTitle,
     clearCount:     (typeof b.clearCount === "number" && isFinite(b.clearCount) && b.clearCount > 0) ? Math.floor(b.clearCount) : 0,
     noTimeoutClear: b.noTimeoutClear === true,
   };
@@ -4102,8 +3514,6 @@ function saveBest(earned, newRewardId) {
     unlockedRewards: rewards,
     clearCount:     earned ? earned.clearCount : prog.clearCount,
     noTimeoutClear: prog.noTimeoutClear || (earned ? earned.noTimeout : false),
-    selectedBaseTitle:  prog.selectedBaseTitle,
-    selectedCrownTitle: prog.selectedCrownTitle,
     soundEnabled:   audio.enabled,
     storySeen:      prev.storySeen === true,   // 作り直しで消えないよう引き継ぐ
   };
@@ -4490,15 +3900,6 @@ document.addEventListener("keydown", (e) => {
     return;
   }
 
-  if (currentScreen === "titles") {
-    // Enter / Space は各ボタンに任せる。Esc だけタイトルへ戻す。
-    if (e.key === "Escape") {
-      e.preventDefault();
-      showScreen("title");
-    }
-    return;
-  }
-
   if (currentScreen === "defeat") {
     // 打鍵は判定対象外。Enter だけを受け付ける。
     if (e.key === "Enter") {
@@ -4518,18 +3919,6 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (currentScreen === "clear") {
-    const picker = document.getElementById("title-picker");
-    if (!picker.hidden) {
-      // モーダル内の select / button のキー操作はそのまま使えるようにする。
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeTitlePicker();
-        return;
-      }
-      if (e.target && e.target.closest && e.target.closest("#title-picker")) return;
-      e.preventDefault();
-      return;
-    }
     if (e.key === "Enter") {
       e.preventDefault();
       startGame();          // 新しいゲームなので登場順は改めて抽選される
