@@ -296,7 +296,8 @@
 
   }
 
-  .btn-sound {
+  /* タイトル最下段の帯に埋め込む音トグル。ここだけの見た目なので id で閉じる。 */
+  #title-footer .btn-sound {
     padding: 0 10px;
     height: 100%;
     flex: none;
@@ -308,7 +309,7 @@
     border-right: 1px solid #4A3320;   /* 記録欄との仕切り */
     cursor: pointer;
   }
-  .btn-sound:hover { color: var(--accent); }
+  #title-footer .btn-sound:hover { color: var(--accent); }
 
   /* 項目の間隔と帯の両端の余白がほぼ同じ幅になるよう --stat-gap を取る。
      菱形の左右も同じ値にして、区切りが必ず項目の中間に見えるようにする。 */
@@ -862,16 +863,38 @@
 
   /* ---------- サウンドトラック ---------- */
 
-  #screen-soundtrack { overflow-y: auto; }
+  /* 再生画面を画面に固定したいので、スクロールは中の入れ物に持たせる。 */
+  #screen-soundtrack { overflow: hidden; }
 
+  #soundtrack-scroll {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  /* min-height: 100% と組にすることで、中身が増えても上端が切れない。 */
   #soundtrack-inner {
-    margin: auto;
-    padding: 22px 0;
+    min-height: 100%;
+    padding: 20px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    justify-content: center;
+    gap: 12px;
   }
+
+  /* 音がOFFのときだけ出る案内。帯の中の音トグルとは別の見た目にする。 */
+  #btn-soundtrack-sound {
+    padding: 7px 18px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--accent);
+    background: rgba(20, 14, 10, 0.86);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #btn-soundtrack-sound:hover { filter: brightness(1.3); }
 
   #soundtrack-head {
     font-size: 26px;
@@ -1812,6 +1835,7 @@
 
   <!-- サウンドトラック -->
   <section class="screen" id="screen-soundtrack">
+   <div id="soundtrack-scroll">
    <div id="soundtrack-inner">
     <div id="soundtrack-head">サウンドトラック</div>
     <button class="btn-sound" id="btn-soundtrack-sound" type="button" hidden>🔈 音がOFFです（押すとONにします）</button>
@@ -1820,6 +1844,7 @@
      <button class="btn btn-x" id="btn-soundtrack-stop" type="button">■ 停止</button>
      <button class="btn" id="btn-soundtrack-back" type="button">タイトルへ戻る</button>
     </div>
+   </div>
    </div>
 
    <!-- 再生画面。ジャケットを背景にして、曲名と再生／停止だけを置く。 -->
@@ -2032,11 +2057,13 @@ const AUDIO = {
        loopEnd はループの折り返し位置（秒／省略時は曲の末尾）。
        1周目は先頭から loopEnd まで鳴り、以降は loopStart〜loopEnd を繰り返す。
        volume は音量（省略時 BGM_VOLUME）。 */
+    /* volume は曲ごとの音量（0〜1）。音源の録音レベルが揃っていないぶんを
+       ここで個別に合わせる。省略すると BGM_VOLUME（現在 0.2）になる。 */
     stage: {
-      micchan:   "assets/micchan.mp3",
-      nimushi:  "assets/nimushi.mp3",
-      nempan:   "assets/nempan_test.mp3",   // ループ確認用に一時差し替え（元: nempan.wav）
-      ponkotsu: "assets/ponkotsu.mp3",
+      micchan:  { src: "assets/micchan.mp3",     volume: 0.2 },
+      nimushi:  { src: "assets/nimushi.mp3",     volume: 0.2 },
+      nempan:   { src: "assets/nempan_test.mp3", volume: 0.4 },   // ループ確認用に一時差し替え（元: nempan.wav）
+      ponkotsu: { src: "assets/ponkotsu.mp3",    volume: 0.2 },
     },
   },
   /* se も文字列と { src, volume } の両方に対応（volume 省略時は SE_VOLUME）。
@@ -3871,7 +3898,7 @@ document.getElementById("btn-soundtrack-stop").addEventListener("click", () => {
 
 document.getElementById("btn-soundtrack").addEventListener("click", () => {
   buildSoundtrack();
-  document.getElementById("screen-soundtrack").scrollTop = 0;
+  document.getElementById("soundtrack-scroll").scrollTop = 0;
   showScreen("soundtrack");          // タイトルBGMは鳴ったまま。行の色で今の曲が分かる
 });
 
@@ -3879,7 +3906,7 @@ document.getElementById("btn-soundtrack-back").addEventListener("click", () => {
   closePlayer();
   stopBgm();                         // 画面を離れたら試聴は止める
   renderSoundtrackState();           // 「再生中」の表示を残さない
-  document.getElementById("screen-soundtrack").scrollTop = 0;
+  document.getElementById("soundtrack-scroll").scrollTop = 0;
   enterTitle();                      // タイトルの背景とBGMを選び直す
 });
 
