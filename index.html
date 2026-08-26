@@ -852,6 +852,29 @@
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
+  /* いま名乗っている称号と、その場で変えるためのボタン。 */
+  #defeat-title-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 17px;
+    color: var(--accent);
+  }
+  #defeat-title:empty { display: none; }
+
+  /* 主導線に見えないよう、下線だけのリンク風にする。 */
+  .btn-linkish {
+    padding: 2px 0;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .btn-linkish:hover { color: var(--accent); }
+
   #defeat-buttons { display: flex; gap: 18px; margin-top: 6px; }
 
   .btn-x {
@@ -879,71 +902,88 @@
     color: var(--accent);
   }
 
+  /* カバー画像を並べるグリッド。7曲なので4列×2段に収まる。 */
   #soundtrack-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 168px);
+    gap: 14px;
+    justify-content: center;
   }
 
   .track-row {
-    width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* カバー。画像が無いときは下地の ♪ が見える。 */
+  .track-cover {
+    position: relative;
+    width: 168px;
+    height: 168px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 8px 16px;
+    justify-content: center;
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 40px;
+    color: var(--border);
+  }
+  .track-cover::before { content: "♪"; }
+  .track-cover-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
-  /* 再生中の行だけ枠と地を明るくする */
-  .track-row.playing {
-    border-color: var(--accent);
-    background: #3A2616;
-  }
+  /* 再生中のカードだけ縁を明るくする */
+  .track-row.playing .track-cover { border-color: var(--accent); }
+  .track-row.locked .track-cover,
+  .track-row.unavailable .track-cover { opacity: 0.55; }
 
+  /* 再生ボタンはカバーの中央に重ねる */
   .track-play {
-    width: 40px;
-    height: 34px;
-    flex: none;
+    position: relative;
+    z-index: 1;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 18px;
     color: var(--bg);
-    background: var(--accent);
-    border: none;
-    border-radius: 4px;
+    background: rgba(212, 160, 60, 0.92);
+    border: 2px solid rgba(255, 244, 214, 0.7);
+    border-radius: 50%;
     cursor: pointer;
   }
-  .track-play:hover:not(:disabled) { filter: brightness(1.1); }
+  .track-play:hover:not(:disabled) { filter: brightness(1.12); }
   .track-play:disabled {
     color: var(--text);
-    background: transparent;
-    border: 1px solid var(--border);
-    opacity: 0.45;
+    background: rgba(20, 14, 10, 0.7);
+    border-color: var(--border);
     cursor: default;
   }
 
-  .track-body { flex: 1; min-width: 0; }
-  .track-name { font-size: 17px; }
-  .track-author {
+  .track-body { text-align: center; }
+  .track-name {
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .track-author,
+  .track-state {
     margin-top: 2px;
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text);
     opacity: 0.7;
   }
-
-  /* 「再生中」「準備中」など、行の状態を示す短い注記 */
-  .track-state {
-    flex: none;
-    font-size: 13px;
-    color: var(--accent);
-  }
-  .track-row.unavailable .track-state,
-  .track-row.locked .track-state {
-    color: var(--text);
-    opacity: 0.5;
-  }
-  .track-row.unavailable .track-name,
+  .track-state { color: var(--accent); opacity: 0.85; }
   .track-row.locked .track-name { opacity: 0.5; }
 
   #soundtrack-buttons { display: flex; gap: 18px; }
@@ -1163,6 +1203,16 @@
     border-radius: 4px;
   }
   .titles-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* 一覧の中の区切り。既存の称号とキャラ別称号の境目に入る。 */
+  .titles-sub {
+    margin: 8px 0 3px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    opacity: 0.75;
+  }
 
   .title-equip-item {
     width: 100%;
@@ -1644,6 +1694,7 @@
     <div id="timeup-line"></div>
     <div id="timeup-note">もう一度この相手に挑戦します</div>
     <div id="timeup-buttons">
+      <button class="btn btn-x" id="btn-share-timeup" type="button">Xで報告する</button>
       <button class="btn" id="btn-timeup-retry">もう一度挑戦（Enter）</button>
     </div>
     <button class="btn-restart" id="btn-restart-timeup" type="button" tabindex="-1">最初から始める</button>
@@ -1671,6 +1722,10 @@
     <div id="defeat-head"></div>
     <div id="defeat-line"></div>
     <div id="defeat-stats"></div>
+    <div id="defeat-title-row">
+      <span id="defeat-title"></span>
+      <button class="btn-linkish" id="btn-defeat-title" type="button">称号を変更</button>
+    </div>
     <div id="defeat-buttons">
       <button class="btn btn-x" id="btn-share-defeat">Xで報告する</button>
       <button class="btn" id="btn-next">次へ（Enter）</button>
@@ -1914,13 +1969,13 @@ const AUDIO = {
  * author は空文字なら出さない。★作者名はここに入れてください。
  */
 const SOUNDTRACK = [
-  { id: "title",          name: "タイトル画面",             author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4 },
-  { id: "title_cleared",  name: "タイトル画面（クリア後）",   author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4 },
-  { id: "title_flawless", name: "タイトル画面（2周目以降）", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
-  { id: "micchan",        name: "みっちゃん戦",             author: "", src: "assets/micchan.mp3" },
-  { id: "nimushi",        name: "にむし戦",                 author: "", src: "assets/nimushi.mp3" },
-  { id: "nempan",         name: "ねむぱん戦",               author: "", src: "assets/nempan_test.mp3" },
-  { id: "ponkotsu",       name: "ポンコツ女王戦",           author: "", src: "assets/ponkotsu.mp3" },
+  { id: "title",          name: "タイトル画面",             author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
+  { id: "title_cleared",  name: "タイトル画面（クリア後）",   author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg" },
+  { id: "title_flawless", name: "タイトル画面（2周目以降）", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg" },
+  { id: "micchan",        name: "みっちゃん戦",             author: "", src: "assets/micchan.mp3",     cover: "assets/cover_micchan.jpeg" },
+  { id: "nimushi",        name: "にむし戦",                 author: "", src: "assets/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg" },
+  { id: "nempan",         name: "ねむぱん戦",               author: "", src: "assets/nempan_test.mp3", cover: "assets/cover_nempan.jpeg" },
+  { id: "ponkotsu",       name: "ポンコツ女王戦",           author: "", src: "assets/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg" },
 ];
 
 const CHARACTERS = [
@@ -1942,7 +1997,7 @@ const CHARACTERS = [
     defeatLine:  "もう、行っちゃうの…？",
     victoryLine: "やったー、まだ一緒に遊べるね",
   },
-  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "四天王の闇担当。\nメンタルとHPは常に瀕死ですが、積立だけは止まりません。", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
+  { id: "nimushi",  name: "にむし",       handle: "@nimushi666", image: "assets/nimushi.png", imageDefeat: "assets/nimushiLose.png", imageVictory: "assets/nimushiWin.png", emoji: "🌱", profileImage: "assets/nimushix.jpg", profileText: "株クラRPGの闇のにむし。\nメンタルとHPは常に瀕死ですが、積立だけは止まらない。", entryLine: "闇の王にむしここに参る", defeatLine: "この私が負ける？...", victoryLine: "弱さって罪だよねー" },
   { id: "nempan",   name: "ねむぱん",     handle: "@nemupan_toushi",      image:  "assets/nempan.jpeg", imageDefeat: "assets/nempanLose.jpeg", imageVictory: "assets/nempanWin.jpeg", emoji: "🍞", profileImage: "assets/nempanx.jpeg", profileText: "", entryLine: "ここから先は、ねむぱんが相手ですっ！🐾", defeatLine: "ねむぱんの……負け、なのです……🐾", victoryLine: "ふっふっふ……ねむぱんの勝利ですっ！🐾" },
   { id: "ponkotsu", name: "ポンコツ女王", handle: "@ponkotsu_queen",
     links: [
@@ -2215,6 +2270,43 @@ const TITLE_CROWN = [
   { id: "c04", name: "🔥 無傷の",         priority: 4, hint: "一度も時間切れせずにクリア" },
   { id: "c05", name: "👑 常勝の",         priority: 5, hint: "累計10回クリア" },
   { id: "c06", name: "🌱 芽吹きの",       priority: 6, hint: "初めてクリア" },
+];
+
+/**
+ * キャラ別の称号。1人につき勝利（冠）と敗北（本体）の2種、合計8種。
+ *   type: "win"  … その相手に一度も時間切れせずに勝つと獲得。crown 側を使う。
+ *   type: "lose" … その相手で一度でも時間切れになると獲得。base 側を使う。
+ * どちらも「その相手との戦闘が終わった時点」で記録するので、
+ * 最後までクリアしなくても獲得できる。文言は仮。
+ */
+const TITLE_CHARA = [
+  { id: "w_micchan",  chara: "micchan",  type: "win",
+    crown: "💫 みっちゃんを超えし", base: null,
+    hint: "みっちゃんに一度も時間切れせずに勝つ" },
+  { id: "l_micchan",  chara: "micchan",  type: "lose",
+    crown: null, base: "みっちゃんの弟子",
+    hint: "みっちゃんに一度でも時間切れになる" },
+
+  { id: "w_nimushi",  chara: "nimushi",  type: "win",
+    crown: "🌑 闇を払いし", base: null,
+    hint: "にむしに一度も時間切れせずに勝つ" },
+  { id: "l_nimushi",  chara: "nimushi",  type: "lose",
+    crown: null, base: "にむしの眷属",
+    hint: "にむしに一度でも時間切れになる" },
+
+  { id: "w_nempan",   chara: "nempan",   type: "win",
+    crown: "🍞 まどろみを断ちし", base: null,
+    hint: "ねむぱんに一度も時間切れせずに勝つ" },
+  { id: "l_nempan",   chara: "nempan",   type: "lose",
+    crown: null, base: "ねむぱんの添い寝役",
+    hint: "ねむぱんに一度でも時間切れになる" },
+
+  { id: "w_ponkotsu", chara: "ponkotsu", type: "win",
+    crown: "👑 王座を退けし", base: null,
+    hint: "ポンコツ女王に一度も時間切れせずに勝つ" },
+  { id: "l_ponkotsu", chara: "ponkotsu", type: "lose",
+    crown: null, base: "女王の忠実なる従者",
+    hint: "ポンコツ女王に一度でも時間切れになる" },
 ];
 
 /* =========================================================================
@@ -2734,6 +2826,7 @@ const state = {
   stageCorrect: 0,
   stageMiss: 0,
   timeoutCount: 0,     // このプレイで時間切れになった回数（冠 c04 の判定に使う）
+  stageTimeouts: {},   // キャラID -> そのキャラで時間切れになった回数（キャラ別称号の判定に使う）
   clearTitleBaseId: null,   // クリア画面・X共有に使う本体称号
   clearTitleCrownId: null,  // クリア画面・X共有に使う冠称号。null は冠なし
 };
@@ -3037,7 +3130,17 @@ document.getElementById("btn-replay").addEventListener("click", startGame);
 
 document.getElementById("btn-share-defeat").addEventListener("click", (e) => {
   e.currentTarget.blur();   // Enter が共有ボタンの再クリックにならないように
-  shareDefeat();
+  openTitlePicker(true, "defeat");   // 称号を確かめてから投稿できるようにする
+});
+
+document.getElementById("btn-defeat-title").addEventListener("click", (e) => {
+  e.currentTarget.blur();
+  openTitlePicker(false, "defeat");
+});
+
+document.getElementById("btn-share-timeup").addEventListener("click", (e) => {
+  e.currentTarget.blur();   // Enter がボタンの再クリックにならないように
+  shareTimeUp();
 });
 document.getElementById("btn-next").addEventListener("click", (e) => {
   e.currentTarget.blur();
@@ -3062,12 +3165,12 @@ document.getElementById("btn-timeup-retry").addEventListener("click", (e) => {
 
 document.getElementById("btn-share-clear").addEventListener("click", (e) => {
   e.currentTarget.blur();
-  openTitlePicker(true);
+  openTitlePicker(true, "clear");
 });
 
 document.getElementById("btn-clear-title-change").addEventListener("click", (e) => {
   e.currentTarget.blur();
-  openTitlePicker(false);
+  openTitlePicker(false, "clear");
 });
 
 document.getElementById("title-picker-base").addEventListener("change", renderTitlePickerPreview);
@@ -3114,6 +3217,7 @@ function restartFromTitle() {
   state.stageCorrect = 0;
   state.stageMiss = 0;
   state.timeoutCount = 0;
+  state.stageTimeouts = {};
 
   document.getElementById("glow").classList.remove("on");
   document.getElementById("hud-time").classList.remove("penalty");
@@ -3139,6 +3243,7 @@ function startGame() {
   state.maxCombo = 0;
   state.totalMs = 0;
   state.timeoutCount = 0;
+  state.stageTimeouts = {};
   armImeWatch();       // タイマーとは独立して走らせる
   enterStage(0);
 }
@@ -3288,6 +3393,13 @@ function showDefeat() {
   playSe(AUDIO.se.defeat);  // そのうえで遷移先の音を鳴らす
 
   const chara = state.order[state.stageIndex];
+
+  // 一度も時間切れしていない相手だけ勝利称号。していれば敗北称号が既に付いている。
+  if (stageTimeoutsFor(chara.id) === 0) awardCharaTitle(chara.id, "win");
+  renderTitleCount();
+
+  syncEquippedToState();          // 装備中の称号を読み直して表示に反映する
+  renderSelectedTitleEverywhere();
 
   renderFace(document.getElementById("defeat-face"), chara, "defeat");
   document.getElementById("defeat-head").textContent = chara.name + " に勝利！";
@@ -3503,7 +3615,7 @@ function playingTrackId() {
   return hit ? hit.id : null;
 }
 
-/** 一覧を組み立てる。行の中身は renderSoundtrackState が後から書き換える。 */
+/** 一覧を組み立てる。中身は renderSoundtrackState が後から書き換える。 */
 function buildSoundtrack() {
   const list = document.getElementById("soundtrack-list");
   list.textContent = "";
@@ -3513,18 +3625,39 @@ function buildSoundtrack() {
     row.className = "track-row";
     row.dataset.id = track.id;
 
+    const cover = document.createElement("div");
+    cover.className = "track-cover";
+
+    // カバー画像。無い／読み込めない場合は ♪ の下地だけが残る。
+    if (track.cover) {
+      const img = document.createElement("img");
+      img.className = "track-cover-img";
+      img.alt = "";
+      cover.appendChild(img);
+      img.addEventListener("error", () => {
+        if (img.parentNode !== cover) return;
+        cover.removeChild(img);            // 下地の ♪ に戻す
+      });
+      img.src = track.cover;
+    }
+
     const play = document.createElement("button");
     play.className = "track-play";
     play.type = "button";
     play.textContent = "▶";
     play.addEventListener("click", () => {
       if (!trackPlayable(track)) return;
-      unlockAudio();                 // ここまで来れば解除済みだが、念のため
-      playBgm(track);
+      unlockAudio();                       // ここまで来れば解除済みだが、念のため
+      if (track.id === playingTrackId()) {
+        stopBgm();                         // 再生中の曲をもう一度押したら止める
+      } else {
+        playBgm(track);
+      }
       renderSoundtrackState();
       // 読み込みに失敗したときは「準備中」に落とす。結果が出るまで少し待つ。
       setTimeout(renderSoundtrackState, 900);
     });
+    cover.appendChild(play);
 
     const body = document.createElement("div");
     body.className = "track-body";
@@ -3535,19 +3668,18 @@ function buildSoundtrack() {
     const author = document.createElement("div");
     author.className = "track-author";
 
-    body.append(name, author);
-
     const state = document.createElement("div");
     state.className = "track-state";
 
-    row.append(play, body, state);
+    body.append(name, author, state);
+    row.append(cover, body);
     list.appendChild(row);
   });
 
   renderSoundtrackState();
 }
 
-/** 再生中の行・準備中の行・音OFFの案内をまとめて更新する。 */
+/** 再生中の曲・準備中の曲・音OFFの案内をまとめて更新する。 */
 function renderSoundtrackState() {
   const playing = playingTrackId();
 
@@ -3568,16 +3700,17 @@ function renderSoundtrackState() {
     const authorEl = row.querySelector(".track-author");
     const author = (unlocked && typeof track.author === "string") ? track.author.trim() : "";
     authorEl.textContent = author;
-    authorEl.hidden = !author;         // 空なら行ごと出さない
+    authorEl.hidden = !author;             // 空なら行ごと出さない
 
     const play = row.querySelector(".track-play");
     play.disabled = !available;
-    play.textContent = isPlaying ? "♪" : "▶";
+    play.textContent = isPlaying ? "■" : "▶";
+    play.setAttribute("aria-label", (isPlaying ? "停止 " : "再生 ") + (track.name || ""));
 
-    row.querySelector(".track-state").textContent =
-      !unlocked  ? "未解放" :
-      !available ? "準備中" :
-      isPlaying  ? "再生中" : "";
+    // 「再生中」は枠の色とボタンで分かるので、注記は聴けない曲だけに出す。
+    const stateEl = row.querySelector(".track-state");
+    stateEl.textContent = !unlocked ? "未解放" : (!available ? "準備中" : "");
+    stateEl.hidden = !stateEl.textContent;
   });
 
   // 音がOFFだと押しても鳴らないので、その場で切り替えられるようにしておく
@@ -3833,11 +3966,11 @@ function equippedTitleIds() {
     const autoBase = (typeof best.bestTimeMs === "number") ? baseTitleFor(best.bestTimeMs) : null;
     if (autoBase && owned.indexOf(autoBase.id) !== -1) baseId = autoBase.id;
     if (!baseId) {
-      const firstOwnedBase = TITLE_BASE.find(t => owned.indexOf(t.id) !== -1);
+      const firstOwnedBase = allBaseTitles().find(t => owned.indexOf(t.id) !== -1);
       baseId = firstOwnedBase ? firstOwnedBase.id : null;
     }
 
-    const ownedCrowns = TITLE_CROWN
+    const ownedCrowns = allCrownTitles()
       .filter(t => owned.indexOf(t.id) !== -1)
       .slice()
       .sort((a, b) => a.priority - b.priority);
@@ -3853,8 +3986,8 @@ function saveEquippedTitle(baseId, crownId) {
   const prog = loadProgress();
   const owned = prog.unlockedTitles;
 
-  if (!baseId || owned.indexOf(baseId) === -1 || !TITLE_BASE.some(t => t.id === baseId)) return false;
-  if (crownId && (owned.indexOf(crownId) === -1 || !TITLE_CROWN.some(t => t.id === crownId))) return false;
+  if (!baseId || owned.indexOf(baseId) === -1 || !allBaseTitles().some(t => t.id === baseId)) return false;
+  if (crownId && (owned.indexOf(crownId) === -1 || !allCrownTitles().some(t => t.id === crownId))) return false;
 
   prev.selectedBaseTitle = baseId;
   prev.selectedCrownTitle = crownId || null;
@@ -3903,6 +4036,14 @@ function createTitleEquipButton(item, kind, owned, selectedId) {
   return btn;
 }
 
+/** 一覧の中の小見出し。既存の称号とキャラ別称号を見分けるための区切り。 */
+function titleGroupLabel(text) {
+  const el = document.createElement("div");
+  el.className = "titles-sub";
+  el.textContent = text;
+  return el;
+}
+
 /** タイトル画面から開く称号一覧を描画する。 */
 function renderTitlesScreen() {
   const prog = loadProgress();
@@ -3925,53 +4066,99 @@ function renderTitlesScreen() {
   TITLE_CROWN.forEach(t => crownList.appendChild(
     createTitleEquipButton(t, "crown", owned, equipped.crownId)
   ));
+  const charaCrowns = charaCrownTitles();
+  if (charaCrowns.length) {
+    crownList.appendChild(titleGroupLabel("── 4人との勝負 ──"));
+    charaCrowns.forEach(t => crownList.appendChild(
+      createTitleEquipButton(t, "crown", owned, equipped.crownId)
+    ));
+  }
+
   TITLE_BASE.forEach(t => baseList.appendChild(
     createTitleEquipButton(t, "base", owned, equipped.baseId)
   ));
+  const charaBases = charaBaseTitles();
+  if (charaBases.length) {
+    baseList.appendChild(titleGroupLabel("── 4人との勝負 ──"));
+    charaBases.forEach(t => baseList.appendChild(
+      createTitleEquipButton(t, "base", owned, equipped.baseId)
+    ));
+  }
 }
 
 /** 現在選択中の称号を文字列にする。 */
 function selectedClearTitleText(baseId, crownId) {
-  const base = TITLE_BASE.find(t => t.id === baseId) || baseTitleFor(Math.round(state.totalMs));
-  const crown = crownId ? TITLE_CROWN.find(t => t.id === crownId) : null;
+  const base = allBaseTitles().find(t => t.id === baseId) || baseTitleFor(Math.round(state.totalMs));
+  const crown = crownId ? allCrownTitles().find(t => t.id === crownId) : null;
   return (crown ? crown.name + " " : "") + base.name;
 }
 
+/** 保存されている装備称号を state に読み込む（撃破画面から変更できるようにするため）。 */
+function syncEquippedToState() {
+  const equipped = equippedTitleIds();
+  state.clearTitleBaseId  = equipped.baseId;
+  state.clearTitleCrownId = equipped.crownId;
+}
+
+/**
+ * いま名乗っている称号を、クリア画面と撃破画面の両方へ反映する。
+ * 称号は1つを共有しているので、どちらで変えても同じ結果になる。
+ */
+function renderSelectedTitleEverywhere() {
+  const text = state.clearTitleBaseId
+    ? selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId)
+    : "";
+  document.getElementById("clear-title").textContent = text;
+
+  const defeatEl = document.getElementById("defeat-title");
+  defeatEl.textContent = text ? "🏆 " + text : "";
+  // 称号を1つも持っていないうちは変更ボタンも出さない
+  document.getElementById("btn-defeat-title").hidden = !text;
+}
+
 function renderSelectedClearTitle() {
-  document.getElementById("clear-title").textContent =
-    selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId);
+  renderSelectedTitleEverywhere();
+}
+
+/** 獲得済みのぶんだけ <option> を足す。label があれば <optgroup> でまとめる。 */
+function appendTitleOptions(select, list, owned, label) {
+  const items = list.filter(t => owned.indexOf(t.id) !== -1);
+  if (items.length === 0) return;
+
+  const parent = label ? document.createElement("optgroup") : select;
+  if (label) parent.label = label;
+
+  items.forEach(t => {
+    const option = document.createElement("option");
+    option.value = t.id;
+    option.textContent = t.name;
+    parent.appendChild(option);
+  });
+  if (label) select.appendChild(parent);
 }
 
 let titlePickerForShare = false;
+let titlePickerContext = "clear";   // "clear" か "defeat"。共有文面の切り替えに使う。
 
 /** 獲得済み称号だけを候補にして選択画面を開く。 */
-function openTitlePicker(forShare) {
+function openTitlePicker(forShare, context) {
+  titlePickerContext = (context === "defeat") ? "defeat" : "clear";
   const prog = loadProgress();
   const owned = prog.unlockedTitles;
   const baseSelect = document.getElementById("title-picker-base");
   const crownSelect = document.getElementById("title-picker-crown");
 
   baseSelect.textContent = "";
-  TITLE_BASE.forEach(t => {
-    if (owned.indexOf(t.id) === -1) return;
-    const option = document.createElement("option");
-    option.value = t.id;
-    option.textContent = t.name;
-    baseSelect.appendChild(option);
-  });
+  appendTitleOptions(baseSelect, TITLE_BASE, owned, "");
+  appendTitleOptions(baseSelect, charaBaseTitles(), owned, "4人との勝負");
 
   crownSelect.textContent = "";
   const none = document.createElement("option");
   none.value = "";
   none.textContent = "冠なし";
   crownSelect.appendChild(none);
-  TITLE_CROWN.forEach(t => {
-    if (owned.indexOf(t.id) === -1) return;
-    const option = document.createElement("option");
-    option.value = t.id;
-    option.textContent = t.name;
-    crownSelect.appendChild(option);
-  });
+  appendTitleOptions(crownSelect, TITLE_CROWN, owned, "");
+  appendTitleOptions(crownSelect, charaCrownTitles(), owned, "4人との勝負");
 
   // 現在表示している称号を初期選択にする。
   if (state.clearTitleBaseId && owned.indexOf(state.clearTitleBaseId) !== -1) {
@@ -4011,11 +4198,15 @@ function applyTitlePicker() {
   state.clearTitleBaseId = baseId;
   state.clearTitleCrownId = crownId;
   saveEquippedTitle(baseId, crownId);
-  renderSelectedClearTitle();
+  renderSelectedTitleEverywhere();
 
   const shouldShare = titlePickerForShare;
+  const context = titlePickerContext;
   closeTitlePicker();
-  if (shouldShare) shareClear();
+  if (shouldShare) {
+    if (context === "defeat") shareDefeat();
+    else shareClear();
+  }
 }
 
 function shareClear() {
@@ -4054,7 +4245,7 @@ function loadBest() {
  */
 function loadProgress() {
   const b = loadBest() || {};
-  const ids = TITLE_BASE.concat(TITLE_CROWN).map(t => t.id);
+  const ids = allTitles().map(t => t.id);
   const unlocked = Array.isArray(b.unlockedTitles)
     ? b.unlockedTitles.filter(id => ids.indexOf(id) !== -1)   // 未知のIDは捨てる
     : [];
@@ -4065,9 +4256,9 @@ function loadProgress() {
     : [];
 
   const selectedBaseTitle = (typeof b.selectedBaseTitle === "string" && unlocked.indexOf(b.selectedBaseTitle) !== -1
-    && TITLE_BASE.some(t => t.id === b.selectedBaseTitle)) ? b.selectedBaseTitle : null;
+    && allBaseTitles().some(t => t.id === b.selectedBaseTitle)) ? b.selectedBaseTitle : null;
   const selectedCrownTitle = (typeof b.selectedCrownTitle === "string" && unlocked.indexOf(b.selectedCrownTitle) !== -1
-    && TITLE_CROWN.some(t => t.id === b.selectedCrownTitle)) ? b.selectedCrownTitle : null;
+    && allCrownTitles().some(t => t.id === b.selectedCrownTitle)) ? b.selectedCrownTitle : null;
 
   return {
     unlockedTitles: unlocked,
@@ -4121,6 +4312,66 @@ function saveBest(earned, newRewardId) {
 
 /* ---------- 称号 ---------- */
 
+/** キャラ別の冠称号は、既存の冠より後ろに並べる（priority はこの基準値から） */
+const CHARA_CROWN_PRIORITY = 100;
+
+/** キャラ別称号（勝利）を冠称号の形に直す。 */
+function charaCrownTitles() {
+  return TITLE_CHARA
+    .filter(t => t.type === "win" && t.crown)
+    .map((t, i) => ({ id: t.id, name: t.crown, hint: t.hint, chara: t.chara,
+                      priority: CHARA_CROWN_PRIORITY + i }));
+}
+
+/** キャラ別称号（敗北）を本体称号の形に直す。maxMs は持たない（時間では決まらない）。 */
+function charaBaseTitles() {
+  return TITLE_CHARA
+    .filter(t => t.type === "lose" && t.base)
+    .map(t => ({ id: t.id, name: t.base, hint: t.hint, chara: t.chara, maxMs: null }));
+}
+
+/** 選択肢になる冠称号／本体称号の全体。キャラ別ぶんを後ろに足す。 */
+function allCrownTitles() { return TITLE_CROWN.concat(charaCrownTitles()); }
+function allBaseTitles()  { return TITLE_BASE.concat(charaBaseTitles()); }
+function allTitles()      { return allBaseTitles().concat(allCrownTitles()); }
+
+/**
+ * 称号を獲得済みとして記録する。自己ベストなどには触らない。
+ * 戦闘の途中（クリア前）でも呼べるようにするため saveBest とは分けてある。
+ */
+function unlockTitles(ids) {
+  const prev = loadBest() || {};
+  const merged = loadProgress().unlockedTitles.slice();
+  let changed = false;
+
+  (ids || []).forEach(id => {
+    if (id && merged.indexOf(id) === -1) { merged.push(id); changed = true; }
+  });
+  if (!changed) return false;
+
+  prev.unlockedTitles = merged;
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
+    return true;
+  } catch (e) {
+    return false;                 // 保存できなくても進行は止めない
+  }
+}
+
+/** その相手との戦闘が終わった時点で、勝敗に応じた称号を記録する。 */
+function awardCharaTitle(charaId, type) {
+  const hit = TITLE_CHARA.filter(t => t.chara === charaId && t.type === type)[0];
+  if (!hit) return null;
+  unlockTitles([hit.id]);
+  return hit;
+}
+
+/** その相手で時間切れになった回数 */
+function stageTimeoutsFor(charaId) {
+  const n = state.stageTimeouts[charaId];
+  return (typeof n === "number" && isFinite(n)) ? n : 0;
+}
+
 /** クリアタイムから本体の称号を決める。maxMs 未満のうち最も厳しいもの。 */
 function baseTitleFor(totalMs) {
   let best = null;
@@ -4138,7 +4389,7 @@ function baseTitleFor(totalMs) {
 function renderUnseenTitle() {
   const box   = document.getElementById("unseen-box");
   const owned = loadProgress().unlockedTitles;
-  const pool  = TITLE_BASE.concat(TITLE_CROWN).filter(t => owned.indexOf(t.id) === -1);
+  const pool  = allTitles().filter(t => owned.indexOf(t.id) === -1);
 
   if (pool.length === 0) { box.hidden = true; return; }
 
@@ -4217,7 +4468,7 @@ function saveSoundSetting(on) {
 
 /** タイトル画面の「称号 N/16」。データが無くても 0/16 を出す。 */
 function renderTitleCount() {
-  const total = TITLE_BASE.length + TITLE_CROWN.length;
+  const total = allTitles().length;
   document.getElementById("title-titles").textContent =
     "称号 " + loadProgress().unlockedTitles.length + "/" + total;
 }
@@ -4254,10 +4505,24 @@ function openShare(text) {
 
 function shareDefeat() {
   const chara = state.order[state.stageIndex];
+  const titleText = state.clearTitleBaseId
+    ? selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId)
+    : "";
   openShare(
     "「" + TITLE + "」\n" +
+    (titleText ? "🏆 " + titleText + "\n" : "") +
     chara.name + " に勝利！\n" +
     "⏱ " + stageTime() + " / 正確率 " + stageAccuracyPercent() + "%\n" +
+    HASHTAGS.join(" ")
+  );
+}
+
+/** 時間切れ画面の共有。称号は出さない（この画面では変更もできない）。 */
+function shareTimeUp() {
+  const chara = state.order[state.stageIndex];
+  openShare(
+    "「" + TITLE + "」\n" +
+    chara.name + " に敗北……\n" +
     HASHTAGS.join(" ")
   );
 }
@@ -4369,6 +4634,9 @@ function onTimeUp() {
   state.timeoutCount++;
 
   const chara = state.order[state.stageIndex];
+  state.stageTimeouts[chara.id] = stageTimeoutsFor(chara.id) + 1;
+  awardCharaTitle(chara.id, "lose");   // この相手との勝負はここで一度終わっている
+  renderTitleCount();
   document.getElementById("timeup-face").textContent = "";
   renderFace(document.getElementById("timeup-face"), chara, "victory");
   document.getElementById("timeup-line").textContent = "「" + lineOf(chara, "victoryLine") + "」";
