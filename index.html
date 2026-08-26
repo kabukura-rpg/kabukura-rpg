@@ -852,29 +852,6 @@
     color: var(--accent);
     font-variant-numeric: tabular-nums;
   }
-  /* いま名乗っている称号と、その場で変えるためのボタン。 */
-  #defeat-title-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    font-size: 17px;
-    color: var(--accent);
-  }
-  #defeat-title:empty { display: none; }
-
-  /* 主導線に見えないよう、下線だけのリンク風にする。 */
-  .btn-linkish {
-    padding: 2px 0;
-    font-family: inherit;
-    font-size: 14px;
-    color: var(--text);
-    background: none;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-  }
-  .btn-linkish:hover { color: var(--accent); }
-
   #defeat-buttons { display: flex; gap: 18px; margin-top: 6px; }
 
   .btn-x {
@@ -903,36 +880,102 @@
   }
 
   /* カバー画像を並べるグリッド。7曲なので4列×2段に収まる。 */
+  /* 曲名と再生ボタンを縦に並べる。ジャケットは再生画面で見せる。 */
   #soundtrack-list {
-    display: grid;
-    grid-template-columns: repeat(4, 168px);
-    gap: 14px;
-    justify-content: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .track-row {
+    width: 560px;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
   }
 
-  /* カバー。画像が無いときは下地の ♪ が見える。 */
-  .track-cover {
-    position: relative;
-    width: 168px;
-    height: 168px;
+  /* 再生中の行だけ枠と地を明るくする */
+  .track-row.playing {
+    border-color: var(--accent);
+    background: #3A2616;
+  }
+
+  .track-play {
+    width: 40px;
+    height: 34px;
+    flex: none;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--bg);
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .track-play:hover:not(:disabled) { filter: brightness(1.1); }
+  .track-play:disabled {
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .track-body { flex: 1; min-width: 0; }
+  .track-name { font-size: 17px; }
+  .track-author {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--text);
+    opacity: 0.7;
+  }
+
+  /* 「再生中」「準備中」など、行の状態を示す短い注記 */
+  .track-state {
+    flex: none;
+    font-size: 13px;
+    color: var(--accent);
+  }
+  .track-row.unavailable .track-state,
+  .track-row.locked .track-state {
+    color: var(--text);
+    opacity: 0.5;
+  }
+  .track-row.unavailable .track-name,
+  .track-row.locked .track-name { opacity: 0.5; }
+
+  #soundtrack-buttons { display: flex; gap: 18px; }
+
+  /* ---------- 再生画面（サブウィンドウ） ---------- */
+
+  #player {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-    font-size: 40px;
-    color: var(--border);
+    background: rgba(0, 0, 0, 0.78);
   }
-  .track-cover::before { content: "♪"; }
-  .track-cover-img {
+
+  /* ジャケットが正方形なので、ウィンドウも正方形にする。 */
+  #player-card {
+    position: relative;
+    width: 420px;
+    height: 420px;
+    overflow: hidden;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.7);
+  }
+
+  /* ジャケットを背面いっぱいに敷く。無ければ下地の色だけが残る。 */
+  #player-bg {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -940,53 +983,92 @@
     object-fit: cover;
   }
 
-  /* 再生中のカードだけ縁を明るくする */
-  .track-row.playing .track-cover { border-color: var(--accent); }
-  .track-row.locked .track-cover,
-  .track-row.unavailable .track-cover { opacity: 0.55; }
+  /* 文字が乗る下半分を落とす。上半分はジャケットをそのまま見せる。 */
+  #player-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.92) 0%,
+      rgba(0, 0, 0, 0.78) 34%,
+      rgba(0, 0, 0, 0.10) 72%,
+      rgba(0, 0, 0, 0.35) 100%);
+    pointer-events: none;
+  }
 
-  /* 再生ボタンはカバーの中央に重ねる */
-  .track-play {
-    position: relative;
-    z-index: 1;
-    width: 52px;
-    height: 52px;
+  /* ジャケットが無いときだけ出す、大きな音符の下地 */
+  #player-card.no-cover::before {
+    content: "♪";
+    position: absolute;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 120px;
+    color: var(--border);
+    opacity: 0.5;
+  }
+
+  #player-body {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0 26px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  #player-name {
+    font-size: 22px;
+    color: #FFF3DC;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  }
+  #player-author {
+    font-size: 14px;
+    color: var(--text);
+    opacity: 0.85;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+  }
+
+  #player-toggle {
+    min-width: 148px;
+    padding: 10px 22px;
     font-family: inherit;
-    font-size: 18px;
+    font-size: 16px;
     color: var(--bg);
-    background: rgba(212, 160, 60, 0.92);
-    border: 2px solid rgba(255, 244, 214, 0.7);
-    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
   }
-  .track-play:hover:not(:disabled) { filter: brightness(1.12); }
-  .track-play:disabled {
-    color: var(--text);
-    background: rgba(20, 14, 10, 0.7);
-    border-color: var(--border);
-    cursor: default;
-  }
+  #player-toggle:hover { filter: brightness(1.1); }
 
-  .track-body { text-align: center; }
-  .track-name {
-    font-size: 14px;
-    line-height: 1.3;
-    color: var(--text);
-  }
-  .track-author,
-  .track-state {
-    margin-top: 2px;
+  #player-note {
     font-size: 12px;
     color: var(--text);
-    opacity: 0.7;
+    opacity: 0.6;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
   }
-  .track-state { color: var(--accent); opacity: 0.85; }
-  .track-row.locked .track-name { opacity: 0.5; }
 
-  #soundtrack-buttons { display: flex; gap: 18px; }
+  #player-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: rgba(20, 14, 10, 0.7);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #player-close:hover { color: var(--accent); }
+
 
   /* ---------- ギャラリー ---------- */
 
@@ -1722,12 +1804,7 @@
     <div id="defeat-head"></div>
     <div id="defeat-line"></div>
     <div id="defeat-stats"></div>
-    <div id="defeat-title-row">
-      <span id="defeat-title"></span>
-      <button class="btn-linkish" id="btn-defeat-title" type="button">称号を変更</button>
-    </div>
     <div id="defeat-buttons">
-      <button class="btn btn-x" id="btn-share-defeat">Xで報告する</button>
       <button class="btn" id="btn-next">次へ（Enter）</button>
     </div>
     <button class="btn-restart" id="btn-restart-defeat" type="button" tabindex="-1">最初から始める</button>
@@ -1742,6 +1819,21 @@
     <div id="soundtrack-buttons">
      <button class="btn btn-x" id="btn-soundtrack-stop" type="button">■ 停止</button>
      <button class="btn" id="btn-soundtrack-back" type="button">タイトルへ戻る</button>
+    </div>
+   </div>
+
+   <!-- 再生画面。ジャケットを背景にして、曲名と再生／停止だけを置く。 -->
+   <div id="player" hidden>
+    <div id="player-card" role="dialog" aria-modal="true" aria-labelledby="player-name">
+     <img id="player-bg" alt="">
+     <div id="player-scrim"></div>
+     <button id="player-close" type="button" aria-label="閉じる">✕</button>
+     <div id="player-body">
+      <div id="player-name"></div>
+      <div id="player-author"></div>
+      <button id="player-toggle" type="button">■ 停止</button>
+      <div id="player-note">画面外をクリック、または Esc で閉じます</div>
+     </div>
     </div>
    </div>
   </section>
@@ -1969,13 +2061,13 @@ const AUDIO = {
  * author は空文字なら出さない。★作者名はここに入れてください。
  */
 const SOUNDTRACK = [
-  { id: "title",          name: "タイトル画面",             author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
-  { id: "title_cleared",  name: "タイトル画面（クリア後）",   author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg" },
-  { id: "title_flawless", name: "タイトル画面（2周目以降）", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg" },
+  { id: "title",          name: "MIDNIGHT ENCOUNTER　真夜中の邂逅",             author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
+  { id: "title_cleared",  name: "DAYBREAK TOGETHER　夜明けを共に",   author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg" },
+  { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg" },
   { id: "micchan",        name: "みっちゃん戦",             author: "", src: "assets/micchan.mp3",     cover: "assets/cover_micchan.jpeg" },
-  { id: "nimushi",        name: "にむし戦",                 author: "", src: "assets/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg" },
-  { id: "nempan",         name: "ねむぱん戦",               author: "", src: "assets/nempan_test.mp3", cover: "assets/cover_nempan.jpeg" },
-  { id: "ponkotsu",       name: "ポンコツ女王戦",           author: "", src: "assets/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg" },
+  { id: "nimushi",        name: "Curse Key Blitz",                 author: "", src: "assets/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg" },
+  { id: "nempan",         name: "PAWPRINT PANIC!",               author: "", src: "assets/nempan_test.mp3", cover: "assets/cover_nempan.jpeg" },
+  { id: "ponkotsu",       name: "Kingdom of Eurobeat",           author: "", src: "assets/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg" },
 ];
 
 const CHARACTERS = [
@@ -3128,16 +3220,6 @@ document.getElementById("btn-titles-back").addEventListener("click", () => {
 
 document.getElementById("btn-replay").addEventListener("click", startGame);
 
-document.getElementById("btn-share-defeat").addEventListener("click", (e) => {
-  e.currentTarget.blur();   // Enter が共有ボタンの再クリックにならないように
-  openTitlePicker(true, "defeat");   // 称号を確かめてから投稿できるようにする
-});
-
-document.getElementById("btn-defeat-title").addEventListener("click", (e) => {
-  e.currentTarget.blur();
-  openTitlePicker(false, "defeat");
-});
-
 document.getElementById("btn-share-timeup").addEventListener("click", (e) => {
   e.currentTarget.blur();   // Enter がボタンの再クリックにならないように
   shareTimeUp();
@@ -3165,12 +3247,12 @@ document.getElementById("btn-timeup-retry").addEventListener("click", (e) => {
 
 document.getElementById("btn-share-clear").addEventListener("click", (e) => {
   e.currentTarget.blur();
-  openTitlePicker(true, "clear");
+  openTitlePicker(true);
 });
 
 document.getElementById("btn-clear-title-change").addEventListener("click", (e) => {
   e.currentTarget.blur();
-  openTitlePicker(false, "clear");
+  openTitlePicker(false);
 });
 
 document.getElementById("title-picker-base").addEventListener("change", renderTitlePickerPreview);
@@ -3398,9 +3480,6 @@ function showDefeat() {
   if (stageTimeoutsFor(chara.id) === 0) awardCharaTitle(chara.id, "win");
   renderTitleCount();
 
-  syncEquippedToState();          // 装備中の称号を読み直して表示に反映する
-  renderSelectedTitleEverywhere();
-
   renderFace(document.getElementById("defeat-face"), chara, "defeat");
   document.getElementById("defeat-head").textContent = chara.name + " に勝利！";
   document.getElementById("defeat-line").textContent = "「" + lineOf(chara, "defeatLine") + "」";
@@ -3625,39 +3704,19 @@ function buildSoundtrack() {
     row.className = "track-row";
     row.dataset.id = track.id;
 
-    const cover = document.createElement("div");
-    cover.className = "track-cover";
-
-    // カバー画像。無い／読み込めない場合は ♪ の下地だけが残る。
-    if (track.cover) {
-      const img = document.createElement("img");
-      img.className = "track-cover-img";
-      img.alt = "";
-      cover.appendChild(img);
-      img.addEventListener("error", () => {
-        if (img.parentNode !== cover) return;
-        cover.removeChild(img);            // 下地の ♪ に戻す
-      });
-      img.src = track.cover;
-    }
-
     const play = document.createElement("button");
     play.className = "track-play";
     play.type = "button";
     play.textContent = "▶";
     play.addEventListener("click", () => {
       if (!trackPlayable(track)) return;
-      unlockAudio();                       // ここまで来れば解除済みだが、念のため
-      if (track.id === playingTrackId()) {
-        stopBgm();                         // 再生中の曲をもう一度押したら止める
-      } else {
-        playBgm(track);
-      }
+      unlockAudio();                 // ここまで来れば解除済みだが、念のため
+      playBgm(track);
+      openPlayer(track);             // 再生画面をかぶせる
       renderSoundtrackState();
       // 読み込みに失敗したときは「準備中」に落とす。結果が出るまで少し待つ。
       setTimeout(renderSoundtrackState, 900);
     });
-    cover.appendChild(play);
 
     const body = document.createElement("div");
     body.className = "track-body";
@@ -3668,18 +3727,19 @@ function buildSoundtrack() {
     const author = document.createElement("div");
     author.className = "track-author";
 
+    body.append(name, author);
+
     const state = document.createElement("div");
     state.className = "track-state";
 
-    body.append(name, author, state);
-    row.append(cover, body);
+    row.append(play, body, state);
     list.appendChild(row);
   });
 
   renderSoundtrackState();
 }
 
-/** 再生中の曲・準備中の曲・音OFFの案内をまとめて更新する。 */
+/** 再生中の行・準備中の行・音OFFの案内・再生画面をまとめて更新する。 */
 function renderSoundtrackState() {
   const playing = playingTrackId();
 
@@ -3700,22 +3760,103 @@ function renderSoundtrackState() {
     const authorEl = row.querySelector(".track-author");
     const author = (unlocked && typeof track.author === "string") ? track.author.trim() : "";
     authorEl.textContent = author;
-    authorEl.hidden = !author;             // 空なら行ごと出さない
+    authorEl.hidden = !author;         // 空なら行ごと出さない
 
     const play = row.querySelector(".track-play");
     play.disabled = !available;
-    play.textContent = isPlaying ? "■" : "▶";
-    play.setAttribute("aria-label", (isPlaying ? "停止 " : "再生 ") + (track.name || ""));
+    play.textContent = isPlaying ? "♪" : "▶";
 
-    // 「再生中」は枠の色とボタンで分かるので、注記は聴けない曲だけに出す。
-    const stateEl = row.querySelector(".track-state");
-    stateEl.textContent = !unlocked ? "未解放" : (!available ? "準備中" : "");
-    stateEl.hidden = !stateEl.textContent;
+    row.querySelector(".track-state").textContent =
+      !unlocked  ? "未解放" :
+      !available ? "準備中" :
+      isPlaying  ? "再生中" : "";
   });
 
   // 音がOFFだと押しても鳴らないので、その場で切り替えられるようにしておく
   document.getElementById("btn-soundtrack-sound").hidden = audio.enabled;
+
+  renderPlayerState();
 }
+
+/* ---------- 再生画面（サブウィンドウ） ---------- */
+
+/** 再生画面に出している曲。閉じているときは null。 */
+let playerTrack = null;
+
+/** ジャケットを背景にした再生画面を開く。 */
+function openPlayer(track) {
+  if (!track) return;
+  playerTrack = track;
+
+  const card = document.getElementById("player-card");
+  const bg   = document.getElementById("player-bg");
+
+  // ジャケット。無い／読み込めない場合は下地の音符だけにする。
+  if (track.cover) {
+    card.classList.remove("no-cover");
+    bg.hidden = false;
+    bg.alt = track.name || "";
+    bg.setAttribute("src", track.cover);
+  } else {
+    card.classList.add("no-cover");
+    bg.hidden = true;
+    bg.removeAttribute("src");
+  }
+
+  document.getElementById("player-name").textContent = track.name || "";
+  const authorEl = document.getElementById("player-author");
+  const author = (typeof track.author === "string") ? track.author.trim() : "";
+  authorEl.textContent = author;
+  authorEl.hidden = !author;
+
+  document.getElementById("player").hidden = false;
+  renderPlayerState();
+}
+
+/** 閉じたときだけ true を返す（Esc の二重処理を避けるため）。再生は止めない。 */
+function closePlayer() {
+  const el = document.getElementById("player");
+  if (el.hidden) return false;
+  el.hidden = true;
+  playerTrack = null;
+  return true;
+}
+
+/** 再生／停止ボタンの見た目を、いま鳴っているかどうかに合わせる。 */
+function renderPlayerState() {
+  if (!playerTrack) return;
+  const isPlaying = (playerTrack.id === playingTrackId());
+  const btn = document.getElementById("player-toggle");
+  btn.textContent = isPlaying ? "■ 停止" : "▶ 再生";
+  btn.disabled = !trackPlayable(playerTrack);
+}
+
+document.getElementById("player-toggle").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!playerTrack || !trackPlayable(playerTrack)) return;
+  unlockAudio();
+  if (playerTrack.id === playingTrackId()) stopBgm();
+  else playBgm(playerTrack);
+  renderSoundtrackState();
+  setTimeout(renderSoundtrackState, 900);
+});
+
+document.getElementById("player-close").addEventListener("click", (e) => {
+  e.stopPropagation();
+  closePlayer();
+});
+
+// カードの中を押しても閉じない。外側（黒幕）だけで閉じる。
+document.getElementById("player-card").addEventListener("click", (e) => e.stopPropagation());
+document.getElementById("player").addEventListener("click", closePlayer);
+
+// ジャケットが読み込めなかったときは、音符の下地に戻す
+document.getElementById("player-bg").addEventListener("error", () => {
+  const bg = document.getElementById("player-bg");
+  if (!bg.getAttribute("src")) return;
+  bg.hidden = true;
+  document.getElementById("player-card").classList.add("no-cover");
+});
 
 document.getElementById("btn-soundtrack-sound").addEventListener("click", () => {
   unlockAudio();
@@ -3735,6 +3876,7 @@ document.getElementById("btn-soundtrack").addEventListener("click", () => {
 });
 
 document.getElementById("btn-soundtrack-back").addEventListener("click", () => {
+  closePlayer();
   stopBgm();                         // 画面を離れたら試聴は止める
   renderSoundtrackState();           // 「再生中」の表示を残さない
   document.getElementById("screen-soundtrack").scrollTop = 0;
@@ -4093,31 +4235,9 @@ function selectedClearTitleText(baseId, crownId) {
   return (crown ? crown.name + " " : "") + base.name;
 }
 
-/** 保存されている装備称号を state に読み込む（撃破画面から変更できるようにするため）。 */
-function syncEquippedToState() {
-  const equipped = equippedTitleIds();
-  state.clearTitleBaseId  = equipped.baseId;
-  state.clearTitleCrownId = equipped.crownId;
-}
-
-/**
- * いま名乗っている称号を、クリア画面と撃破画面の両方へ反映する。
- * 称号は1つを共有しているので、どちらで変えても同じ結果になる。
- */
-function renderSelectedTitleEverywhere() {
-  const text = state.clearTitleBaseId
-    ? selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId)
-    : "";
-  document.getElementById("clear-title").textContent = text;
-
-  const defeatEl = document.getElementById("defeat-title");
-  defeatEl.textContent = text ? "🏆 " + text : "";
-  // 称号を1つも持っていないうちは変更ボタンも出さない
-  document.getElementById("btn-defeat-title").hidden = !text;
-}
-
 function renderSelectedClearTitle() {
-  renderSelectedTitleEverywhere();
+  document.getElementById("clear-title").textContent =
+    selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId);
 }
 
 /** 獲得済みのぶんだけ <option> を足す。label があれば <optgroup> でまとめる。 */
@@ -4138,11 +4258,9 @@ function appendTitleOptions(select, list, owned, label) {
 }
 
 let titlePickerForShare = false;
-let titlePickerContext = "clear";   // "clear" か "defeat"。共有文面の切り替えに使う。
 
 /** 獲得済み称号だけを候補にして選択画面を開く。 */
-function openTitlePicker(forShare, context) {
-  titlePickerContext = (context === "defeat") ? "defeat" : "clear";
+function openTitlePicker(forShare) {
   const prog = loadProgress();
   const owned = prog.unlockedTitles;
   const baseSelect = document.getElementById("title-picker-base");
@@ -4198,15 +4316,11 @@ function applyTitlePicker() {
   state.clearTitleBaseId = baseId;
   state.clearTitleCrownId = crownId;
   saveEquippedTitle(baseId, crownId);
-  renderSelectedTitleEverywhere();
+  renderSelectedClearTitle();
 
   const shouldShare = titlePickerForShare;
-  const context = titlePickerContext;
   closeTitlePicker();
-  if (shouldShare) {
-    if (context === "defeat") shareDefeat();
-    else shareClear();
-  }
+  if (shouldShare) shareClear();
 }
 
 function shareClear() {
@@ -4503,20 +4617,6 @@ function openShare(text) {
   window.open(url, "_blank", "noopener");
 }
 
-function shareDefeat() {
-  const chara = state.order[state.stageIndex];
-  const titleText = state.clearTitleBaseId
-    ? selectedClearTitleText(state.clearTitleBaseId, state.clearTitleCrownId)
-    : "";
-  openShare(
-    "「" + TITLE + "」\n" +
-    (titleText ? "🏆 " + titleText + "\n" : "") +
-    chara.name + " に勝利！\n" +
-    "⏱ " + stageTime() + " / 正確率 " + stageAccuracyPercent() + "%\n" +
-    HASHTAGS.join(" ")
-  );
-}
-
 /** 時間切れ画面の共有。称号は出さない（この画面では変更もできない）。 */
 function shareTimeUp() {
   const chara = state.order[state.stageIndex];
@@ -4750,7 +4850,12 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (currentScreen === "soundtrack") {
-    return;            // 打鍵は判定対象外。この画面ではキー操作を受け付けない。
+    // 打鍵は判定対象外。Esc だけ再生画面を閉じるのに使う。
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closePlayer();
+    }
+    return;
   }
 
   if (currentScreen === "gallery") {
