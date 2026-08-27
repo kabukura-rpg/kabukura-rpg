@@ -296,20 +296,18 @@
 
   }
 
-  /* タイトル最下段の帯に埋め込む音トグル。ここだけの見た目なので id で閉じる。 */
-  #title-footer .btn-sound {
-    padding: 0 10px;
-    height: 100%;
-    flex: none;
+  /* IME警告の下に置く音トグル。警告と同じ形にして1組に見せる。 */
+  #title-center .btn-sound {
+    padding: 7px 20px;
     font-family: inherit;
     font-size: 14px;
     color: var(--text);
-    background: transparent;
-    border: none;
-    border-right: 1px solid #4A3320;   /* 記録欄との仕切り */
+    background: rgba(20, 14, 10, 0.86);
+    border: 1px solid #7A5526;
+    border-radius: 6px;
     cursor: pointer;
   }
-  #title-footer .btn-sound:hover { color: var(--accent); }
+  #title-center .btn-sound:hover { color: var(--accent); }
 
   /* 項目の間隔と帯の両端の余白がほぼ同じ幅になるよう --stat-gap を取る。
      菱形の左右も同じ値にして、区切りが必ず項目の中間に見えるようにする。 */
@@ -1704,6 +1702,7 @@
         <span class="btn-start-sub">ENTER</span>
       </button>
       <div id="title-ime">⚠ 日本語入力（IME）はOFF</div>
+      <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
     </div>
 
     <div id="title-subnav">
@@ -1719,7 +1718,6 @@
     </div>
 
     <div id="title-footer">
-      <button class="btn-sound" id="btn-sound" type="button" aria-pressed="false">🔈 音 OFF</button>
       <div id="title-stats">
         <span id="title-best">自己ベスト ——</span>
         <span id="title-accuracy">正確率 ——</span>
@@ -1998,7 +1996,7 @@ const TITLE_THEMES = [
     id: "flawless",
     bg:  "assets/title_bg_flawless.jpeg",
     bgm: { src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
-    condition: (p) => p.clearCount >= 2,   // 2周目をクリアしたら
+    condition: (p) => p.clearCount >= 3,   // 2周目をクリアしたら
   },
   {
     id: "cleared",
