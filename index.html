@@ -2513,65 +2513,91 @@ const TIPS = [
 /* 称号（本体）。クリアタイムが maxMs 未満のうち、いちばん条件の厳しいものが付く。
    b01 は maxMs: null ＝ どれにも当てはまらないとき（3分以上）の受け皿。 */
 /* hint は「まだ見ぬ称号」で見せる獲得条件。空にすればその行だけ出なくなる。 */
+
+/* 本体称号（タイム系）。クリアタイムで自動的に1つ決まる。
+   maxMs 未満のうち最も厳しいものが選ばれるので、上から緩い順に並べる。 */
 const TITLE_BASE = [
-  { id: "b01", name: "見習い投資家",           maxMs: null,   hint: "3分以上でクリア" },
-  { id: "b02", name: "積立の徒",               maxMs: 180000, hint: "2分30秒〜3分でクリア" },
-  { id: "b03", name: "分散の使い手",           maxMs: 150000, hint: "2分〜2分30秒でクリア" },
-  { id: "b04", name: "複利の探究者",           maxMs: 120000, hint: "1分40秒〜2分でクリア" },
-  { id: "b05", name: "相場を読む者",           maxMs: 100000, hint: "1分20秒〜1分40秒でクリア" },
-  { id: "b06", name: "詠唱者",                 maxMs: 80000,  hint: "1分〜1分20秒でクリア" },
-  { id: "b07", name: "インデックスの魔術師",   maxMs: 60000,  hint: "50秒〜1分でクリア" },
-  { id: "b08", name: "市場の支配者",           maxMs: 50000,  hint: "40秒〜50秒でクリア" },
-  { id: "b09", name: "大賢者",                 maxMs: 40000,  hint: "30秒〜40秒でクリア" },
-  { id: "b10", name: "理外の存在",             maxMs: 30000,  hint: "30秒未満でクリア" },
+  { id: "b01", name: "見習い投資家",         maxMs: null,   hint: "3分以上でクリア" },
+  { id: "b02", name: "積立の徒",             maxMs: 180000, hint: "2分30秒〜3分でクリア" },
+  { id: "b03", name: "分散の使い手",         maxMs: 150000, hint: "2分10秒〜2分30秒でクリア" },
+  { id: "b04", name: "複利の探究者",         maxMs: 130000, hint: "1分50秒〜2分10秒でクリア" },
+  { id: "b05", name: "相場を読む者",         maxMs: 110000, hint: "1分30秒〜1分50秒でクリア" },
+  { id: "b06", name: "億り人",               maxMs: 90000,  hint: "1分20秒〜1分30秒でクリア" },
+  { id: "b07", name: "インデックスの魔術師", maxMs: 80000,  hint: "1分10秒〜1分20秒でクリア" },
+  { id: "b08", name: "市場の支配者",         maxMs: 70000,  hint: "1分〜1分10秒でクリア" },
+  { id: "b09", name: "フルFIRE",             maxMs: 60000,  hint: "50秒〜1分でクリア" },
+  { id: "b10", name: "株クラの頂点",         maxMs: 50000,  hint: "50秒未満でクリア" },
 ];
 
-/* 称号（冠）。条件を満たしたものはすべて記録し、表示は priority 最小の1つだけ。 */
+/* 本体称号（条件系）。獲得だけされ、自動表示はされない。称号選択画面から選ぶ。
+   キャラとの勝敗で決まるぶんは TITLE_CHARA 側にある。 */
+const TITLE_COND = [
+  { id: "n01", name: "株クラRPGメンバー", hint: "4人全員に勝ってクリア" },
+  { id: "n02", name: "握力ゴリラ",        hint: "累計3,000文字を入力" },
+  { id: "n03", name: "ガチホ民",          hint: "一度も時間切れせずにクリア" },
+  { id: "n04", name: "お祈り投資家",      hint: "残り1秒以内でクリア" },
+  { id: "n05", name: "市場に居続けた者",  hint: "イラストをすべて集める" },
+  { id: "n06", name: "塩漬け職人",        hint: "同じ相手に5回続けて時間切れ" },
+  { id: "n07", name: "狼狽売りの達人",    hint: "1プレイで20回ミスする" },
+  { id: "n08", name: "高値掴みの天才",    hint: "4番手で時間切れになる" },
+  { id: "n09", name: "ナンピンマスター",  hint: "同じ相手に3回時間切れしてから勝つ" },
+  { id: "n10", name: "損切使い",          hint: "途中でタイトルへ戻る" },
+  { id: "n11", name: "株クラ民",          hint: "Xへの投稿ボタンを押す" },
+];
+
+/* 称号（冠）。条件を満たしたものはすべて記録し、自動表示は priority 最小の1つだけ。
+   priority は仮の並び。数字を書き換えれば表示の優先順位を変えられる。 */
 const TITLE_CROWN = [
-  { id: "c01", name: "✨ 邂逅の",         priority: 1, hint: "ごく稀に訪れる" },
-  { id: "c02", name: "🎯 一片の狂いなき", priority: 2, hint: "正確率100%でクリア" },
-  { id: "c03", name: "⚡ 電光石火の",     priority: 3, hint: "最大コンボ150以上" },
-  { id: "c04", name: "🔥 無傷の",         priority: 4, hint: "一度も時間切れせずにクリア" },
-  { id: "c05", name: "👑 常勝の",         priority: 5, hint: "累計10回クリア" },
-  { id: "c06", name: "🌱 芽吹きの",       priority: 6, hint: "初めてクリア" },
+  { id: "c01", name: "✨ 邂逅の",         priority: 1,  hint: "ごく稀に訪れる" },
+  { id: "c02", name: "🎯 一片の狂いなき", priority: 2,  hint: "正確率100%でクリア" },
+  { id: "c03", name: "⚡ 電光石火の",     priority: 3,  hint: "最大コンボ150以上" },
+  { id: "c07", name: "♾ 一生一緒に",      priority: 4,  hint: "累計100回クリア" },
+  { id: "c05", name: "👑 常勝の",         priority: 5,  hint: "累計10回クリア" },
+  { id: "c04", name: "🔥 無傷の",         priority: 6,  hint: "一度も時間切れせずにクリア" },
+  { id: "c08", name: "👑 四天王箱推し",   priority: 7,  hint: "4人全員で時間切れを経験する" },
+  { id: "c06", name: "🌱 芽吹きの",       priority: 8,  hint: "初めてクリア" },
 ];
 
 /**
- * キャラ別の称号。1人につき勝利（冠）と敗北（本体）の2種、合計8種。
- *   type: "win"  … その相手に一度も時間切れせずに勝つと獲得。crown 側を使う。
- *   type: "lose" … その相手で一度でも時間切れになると獲得。base 側を使う。
+ * キャラ別の称号。1人につき勝利と敗北の2種、合計8種。
+ * 勝利／敗北のどちらを冠にするかはキャラごとに違うので、crown / base で書き分ける。
+ *   type: "win"  … その相手を倒した時点で獲得
+ *   type: "lose" … その相手で時間切れになった時点で獲得
  * どちらも「その相手との戦闘が終わった時点」で記録するので、
- * 最後までクリアしなくても獲得できる。文言は仮。
+ * 最後までクリアしなくても獲得できる。
  */
 const TITLE_CHARA = [
   { id: "w_micchan",  chara: "micchan",  type: "win",
-    crown: "みっちゃんに愛されし", base: null,
-    hint: "みっちゃんに一度も時間切れせずに勝つ" },
+    crown: "💫 みっちゃんに愛されし", base: null,
+    hint: "みっちゃんに勝つ" },
   { id: "l_micchan",  chara: "micchan",  type: "lose",
-    crown: "みっちゃん推しの", base: null,
-    hint: "みっちゃんに一度でも時間切れになる" },
+    crown: "💫 みっちゃん推しの", base: null,
+    hint: "みっちゃんで時間切れになる" },
 
   { id: "w_nimushi",  chara: "nimushi",  type: "win",
     crown: "🌑 闇を払いし", base: null,
-    hint: "にむしに一度も時間切れせずに勝つ" },
+    hint: "にむしに勝つ" },
   { id: "l_nimushi",  chara: "nimushi",  type: "lose",
     crown: null, base: "にむしの眷属",
-    hint: "にむしに一度でも時間切れになる" },
+    hint: "にむしで時間切れになる" },
 
   { id: "w_nempan",   chara: "nempan",   type: "win",
-    crown: "野生に帰りし", base: null,
-    hint: "ねむぱんに一度も時間切れせずに勝つ" },
-  { id: "l_nempan",   chara: "nempan",   type: "lose",
     crown: null, base: "モフモフ尻尾",
-    hint: "ねむぱんに一度でも時間切れになる" },
+    hint: "ねむぱんに勝つ" },
+  { id: "l_nempan",   chara: "nempan",   type: "lose",
+    crown: "🍞 野生に帰りし", base: null,
+    hint: "ねむぱんで時間切れになる" },
 
   { id: "w_ponkotsu", chara: "ponkotsu", type: "win",
-    crown: "👑 王座を退けし", base: null,
-    hint: "ポンコツ女王に一度も時間切れせずに勝つ" },
+    crown: null, base: "キングオブキングス",
+    hint: "ポンコツ女王に勝つ" },
   { id: "l_ponkotsu", chara: "ponkotsu", type: "lose",
-    crown: null, base: "女王の忠実なる従者",
-    hint: "ポンコツ女王に一度でも時間切れになる" },
+    crown: null, base: "フィナンツェ国民",
+    hint: "ポンコツ女王で時間切れになる" },
 ];
+
+/** 「握力ゴリラ」に必要な累計入力文字数 */
+const KEYSTROKES_FOR_GORILLA = 3000;
 
 /* =========================================================================
    ここから下がロジック
@@ -3090,7 +3116,10 @@ const state = {
   stageCorrect: 0,
   stageMiss: 0,
   timeoutCount: 0,     // このプレイで時間切れになった回数（冠 c04 の判定に使う）
-  stageTimeouts: {},   // キャラID -> そのキャラで時間切れになった回数（キャラ別称号の判定に使う）
+  stageTimeouts: {},   // キャラID -> そのキャラで時間切れになった回数
+  timeoutStreak: {},   // キャラID -> 連続で時間切れになった回数。倒した時点で 0 に戻す
+  timeoutSeen: {},     // キャラID -> 一度でも時間切れになったか（四天王箱推しの判定）
+  lastRemainingMs: 0,  // 最後の相手を倒した瞬間の残り時間（お祈り投資家の判定）
   clearTitleBaseId: null,   // クリア画面・X共有に使う本体称号
   clearTitleCrownId: null,  // クリア画面・X共有に使う冠称号。null は冠なし
 };
@@ -3495,6 +3524,11 @@ document.getElementById("title-picker").addEventListener("click", (e) => {
  * 誤操作を避けるためクリックからのみ呼ぶ（Enterでは発火させない）。
  */
 function restartFromTitle() {
+  // ゲームの途中で抜けたときだけ「損切使い」。クリア画面からの帰りは対象外。
+  if (currentScreen !== "clear" && state.order.length > 0) {
+    unlockTitles(["n10"]);
+  }
+
   stopTimer();          // 戦闘中に押されてもタイマーは確実に止める
   stopAllSe();          // 鳴りかけの効果音をタイトルへ持ち越さない
   clearTimeout(state.introTimer);
@@ -3522,6 +3556,9 @@ function restartFromTitle() {
   state.stageMiss = 0;
   state.timeoutCount = 0;
   state.stageTimeouts = {};
+  state.timeoutStreak = {};
+  state.timeoutSeen = {};
+  state.lastRemainingMs = 0;
 
   document.getElementById("glow").classList.remove("on");
   document.getElementById("hud-time").classList.remove("penalty");
@@ -3548,6 +3585,9 @@ function startGame() {
   state.totalMs = 0;
   state.timeoutCount = 0;
   state.stageTimeouts = {};
+  state.timeoutStreak = {};
+  state.timeoutSeen = {};
+  state.lastRemainingMs = 0;
   armImeWatch();       // タイマーとは独立して走らせる
   enterStage(0);
 }
@@ -3683,7 +3723,8 @@ function onSpellCompleted() {
     return;
   }
 
-  // 撃破。タイマーを止めてから撃破画面へ。この画面の滞在時間は計測されない。
+  // 撃破。残り時間は「お祈り投資家」の判定に使うので、止める前に控える。
+  state.lastRemainingMs = remainingMs();
   stopTimer();
   showDefeat();
 }
@@ -3698,8 +3739,12 @@ function showDefeat() {
 
   const chara = state.order[state.stageIndex];
 
-  // 一度も時間切れしていない相手だけ勝利称号。していれば敗北称号が既に付いている。
-  if (stageTimeoutsFor(chara.id) === 0) awardCharaTitle(chara.id, "win");
+  awardCharaTitle(chara.id, "win");        // 倒した時点で勝利称号
+
+  // 3回以上続けて時間切れしてから勝った相手はナンピン扱い
+  if (timeoutStreakFor(chara.id) >= 3) unlockTitles(["n09"]);
+  state.timeoutStreak[chara.id] = 0;       // 倒したので連続記録はここで途切れる
+
   renderTitleCount();
 
   renderFace(document.getElementById("defeat-face"), chara, "defeat");
@@ -3802,6 +3847,7 @@ function showClear() {
 
   // 先に保存することで、今回初めて取った称号も直後の称号選択で選べる。
   saveBest(earned, gained.isNew ? gained.reward.id : null);   // 更新はクリア時のみ
+  awardClearConditionTitles();                                // 条件系はそのあとで足す
 
   // 装備済み称号があれば維持。旧データなどで未設定なら今回の自動称号を初期装備にする。
   let equipped = equippedTitleIds();
@@ -4584,7 +4630,14 @@ function createTitleEquipButton(item, kind, owned, selectedId) {
   return btn;
 }
 
-/** 一覧の中の小見出し。既存の称号とキャラ別称号を見分けるための区切り。 */
+/** 小見出し付きで1グループぶん並べる。空のグループは見出しごと出さない。 */
+function appendTitleGroup(list, label, items, kind, owned, selectedId) {
+  if (!items || items.length === 0) return;
+  list.appendChild(titleGroupLabel(label));
+  items.forEach(t => list.appendChild(createTitleEquipButton(t, kind, owned, selectedId)));
+}
+
+/** 一覧の中の小見出し。系統ごとの区切りに使う。 */
 function titleGroupLabel(text) {
   const el = document.createElement("div");
   el.className = "titles-sub";
@@ -4614,24 +4667,14 @@ function renderTitlesScreen() {
   TITLE_CROWN.forEach(t => crownList.appendChild(
     createTitleEquipButton(t, "crown", owned, equipped.crownId)
   ));
-  const charaCrowns = charaCrownTitles();
-  if (charaCrowns.length) {
-    crownList.appendChild(titleGroupLabel("── 4人との勝負 ──"));
-    charaCrowns.forEach(t => crownList.appendChild(
-      createTitleEquipButton(t, "crown", owned, equipped.crownId)
-    ));
-  }
+  appendTitleGroup(crownList, "── 4人との勝負 ──", charaCrownTitles(), "crown", owned, equipped.crownId);
 
+  baseList.appendChild(titleGroupLabel("── タイム ──"));
   TITLE_BASE.forEach(t => baseList.appendChild(
     createTitleEquipButton(t, "base", owned, equipped.baseId)
   ));
-  const charaBases = charaBaseTitles();
-  if (charaBases.length) {
-    baseList.appendChild(titleGroupLabel("── 4人との勝負 ──"));
-    charaBases.forEach(t => baseList.appendChild(
-      createTitleEquipButton(t, "base", owned, equipped.baseId)
-    ));
-  }
+  appendTitleGroup(baseList, "── 条件 ──",       TITLE_COND,        "base", owned, equipped.baseId);
+  appendTitleGroup(baseList, "── 4人との勝負 ──", charaBaseTitles(), "base", owned, equipped.baseId);
 }
 
 /** 現在選択中の称号を文字列にする。 */
@@ -4674,6 +4717,7 @@ function openTitlePicker(forShare) {
 
   baseSelect.textContent = "";
   appendTitleOptions(baseSelect, TITLE_BASE, owned, "");
+  appendTitleOptions(baseSelect, TITLE_COND, owned, "条件");
   appendTitleOptions(baseSelect, charaBaseTitles(), owned, "4人との勝負");
 
   crownSelect.textContent = "";
@@ -4822,6 +4866,7 @@ function saveBest(earned, newRewardId) {
     soundEnabled:   audio.enabled,
     storySeen:      prev.storySeen === true,     // 作り直しで消えないよう引き継ぐ
     epilogueSeen:   prev.epilogueSeen === true,  // 同上
+    totalKeystrokes: loadTotalKeystrokes(),      // 累計入力文字数も作り直しで消さない
   };
 
   try {
@@ -4836,24 +4881,24 @@ function saveBest(earned, newRewardId) {
 /** キャラ別の冠称号は、既存の冠より後ろに並べる（priority はこの基準値から） */
 const CHARA_CROWN_PRIORITY = 100;
 
-/** キャラ別称号（勝利）を冠称号の形に直す。 */
+/** キャラ別称号のうち、冠として書かれているもの（勝利／敗北どちらもあり得る）。 */
 function charaCrownTitles() {
   return TITLE_CHARA
-    .filter(t => t.type === "win" && t.crown)
+    .filter(t => !!t.crown)
     .map((t, i) => ({ id: t.id, name: t.crown, hint: t.hint, chara: t.chara,
                       priority: CHARA_CROWN_PRIORITY + i }));
 }
 
-/** キャラ別称号（敗北）を本体称号の形に直す。maxMs は持たない（時間では決まらない）。 */
+/** キャラ別称号のうち、本体として書かれているもの。maxMs は持たない（時間では決まらない）。 */
 function charaBaseTitles() {
   return TITLE_CHARA
-    .filter(t => t.type === "lose" && t.base)
+    .filter(t => !!t.base)
     .map(t => ({ id: t.id, name: t.base, hint: t.hint, chara: t.chara, maxMs: null }));
 }
 
 /** 選択肢になる冠称号／本体称号の全体。キャラ別ぶんを後ろに足す。 */
 function allCrownTitles() { return TITLE_CROWN.concat(charaCrownTitles()); }
-function allBaseTitles()  { return TITLE_BASE.concat(charaBaseTitles()); }
+function allBaseTitles()  { return TITLE_BASE.concat(TITLE_COND, charaBaseTitles()); }
 function allTitles()      { return allBaseTitles().concat(allCrownTitles()); }
 
 /**
@@ -4893,6 +4938,38 @@ function stageTimeoutsFor(charaId) {
   return (typeof n === "number" && isFinite(n)) ? n : 0;
 }
 
+/** その相手で「続けて」時間切れになった回数。倒すと 0 に戻る。 */
+function timeoutStreakFor(charaId) {
+  const n = state.timeoutStreak[charaId];
+  return (typeof n === "number" && isFinite(n)) ? n : 0;
+}
+
+/** このプレイで4人全員の時間切れを経験したか（冠 c08 の判定） */
+function allCharasTimedOut() {
+  return CHARACTERS.every(c => state.timeoutSeen[c.id] === true);
+}
+
+/** 累計入力文字数。旧データや型違いは 0 に倒す。 */
+function loadTotalKeystrokes() {
+  const b = loadBest() || {};
+  const n = b.totalKeystrokes;
+  return (typeof n === "number" && isFinite(n) && n > 0) ? Math.floor(n) : 0;
+}
+
+/** 累計入力文字数を足して保存し、足したあとの合計を返す。 */
+function addTotalKeystrokes(count) {
+  const add = (typeof count === "number" && isFinite(count) && count > 0) ? Math.floor(count) : 0;
+  const next = loadTotalKeystrokes() + add;
+  const prev = loadBest() || {};
+  prev.totalKeystrokes = next;
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
+  } catch (e) {
+    /* 保存できなくても進行は止めない */
+  }
+  return next;
+}
+
 /** クリアタイムから本体の称号を決める。maxMs 未満のうち最も厳しいもの。 */
 function baseTitleFor(totalMs) {
   let best = null;
@@ -4926,7 +5003,10 @@ function renderUnseenTitle() {
 /** このプレイで獲得した冠。条件を満たしたものをすべて返す。 */
 function earnedCrowns(clearCount) {
   const got = [];
-  const add = id => got.push(TITLE_CROWN.find(c => c.id === id));
+  const add = id => {
+    const hit = TITLE_CROWN.find(c => c.id === id);
+    if (hit) got.push(hit);
+  };
 
   if (rng() < 0.01)                add("c01");                // 邂逅の（1%）
   if (accuracyPercent() === 100)   add("c02");                // 一片の狂いなき
@@ -4934,8 +5014,27 @@ function earnedCrowns(clearCount) {
   if (state.timeoutCount === 0)    add("c04");                // 無傷の
   if (clearCount >= 10)            add("c05");                // 常勝の
   if (clearCount === 1)            add("c06");                // 芽吹きの
+  if (clearCount >= 100)           add("c07");                // 一生一緒に
+  if (allCharasTimedOut())         add("c08");                // 四天王箱推し
 
   return got;
+}
+
+/**
+ * クリアした時点で決まる条件系の称号をまとめて記録する。
+ * 累計入力文字数とイラストの枚数は保存済みの値を見るので、saveBest のあとで呼ぶ。
+ */
+function awardClearConditionTitles() {
+  const total = addTotalKeystrokes(state.correct + state.miss);
+  const prog  = loadProgress();
+  const got   = ["n01"];                                       // 株クラRPGメンバー（クリアで確定）
+
+  if (total >= KEYSTROKES_FOR_GORILLA)                got.push("n02");   // 握力ゴリラ
+  if (state.timeoutCount === 0)                       got.push("n03");   // ガチホ民
+  if (state.lastRemainingMs > 0 && state.lastRemainingMs <= 1000) got.push("n04");   // お祈り投資家
+  if (prog.unlockedRewards.length >= allRewards().length)  got.push("n05");   // 市場に居続けた者
+
+  unlockTitles(got);
 }
 
 /** クリア時の称号を確定させる（保存はまだしない） */
@@ -5034,6 +5133,9 @@ function renderBest() {
 /* ---------- X共有 ---------- */
 
 function openShare(text) {
+  unlockTitles(["n11"]);            // 株クラ民。投稿画面を開いた時点で記録する
+  renderTitleCount();
+
   const url = "https://twitter.com/intent/tweet"
             + "?text=" + encodeURIComponent(text)
             + "&url="  + encodeURIComponent(SHARE_URL);
@@ -5158,7 +5260,16 @@ function onTimeUp() {
 
   const chara = state.order[state.stageIndex];
   state.stageTimeouts[chara.id] = stageTimeoutsFor(chara.id) + 1;
+  const streak = timeoutStreakFor(chara.id) + 1;
+  state.timeoutStreak[chara.id] = streak;
+  state.timeoutSeen[chara.id] = true;
+
   awardCharaTitle(chara.id, "lose");   // この相手との勝負はここで一度終わっている
+
+  const got = [];
+  if (streak >= 5)             got.push("n06");   // 塩漬け職人
+  if (state.stageIndex === 3)  got.push("n08");   // 高値掴みの天才
+  unlockTitles(got);
   renderTitleCount();
   document.getElementById("timeup-face").textContent = "";
   renderFace(document.getElementById("timeup-face"), chara, "victory");
@@ -5237,6 +5348,10 @@ function handleTyping(key) {
     state.combo = 0;
     state.miss++;
     state.stageMiss++;
+    if (state.miss === 20) {          // 狼狽売りの達人。到達した瞬間に記録する
+      unlockTitles(["n07"]);
+      renderTitleCount();
+    }
     applyMissPenalty();
   }
   if (currentScreen === "game") renderFooter();
