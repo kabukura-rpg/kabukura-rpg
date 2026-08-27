@@ -1173,6 +1173,15 @@
   }
   .gallery-item.locked .gallery-name { opacity: 0.4; }
 
+  /* シナリオの枠。イラストと同じ寸法で、中身は再生マークだけ。 */
+  .gallery-item.scenario .gallery-thumb {
+    font-size: 34px;
+    color: var(--accent);
+    background: linear-gradient(180deg, #2E1E14 0%, #1A110B 100%);
+  }
+  .gallery-item.scenario.locked .gallery-thumb { color: var(--untyped); }
+  .gallery-item.scenario .gallery-thumb.note { font-size: 14px; }
+
   /* 拡大表示。画面いっぱいの黒幕で、どこを押しても閉じる。 */
   #gallery-viewer {
     position: absolute;
@@ -2044,6 +2053,22 @@ const STORY_WHITEOUT_MS = 900;
 
 /** 行が出てから入力を受け付けないでいる時間。連打で読み飛ばすのを防ぐ。 */
 const STORY_INPUT_LOCK_MS = 350;
+
+/**
+ * エピローグ。初めてクリアしたときに、クリア画面の手前で1回だけ流れる。
+ * 書き方は STORY とまったく同じ（bg / speaker / text / fadeIn / whiteout）。
+ * 空配列にすると、そのままクリア画面へ進む。文言は仮。
+ */
+const EPILOGUE = [
+  { bg: "assets/title_bg_cleared.jpeg", speaker: "", text: "4人との勝負を終えて、あなたは大きく息をつきました。", fadeIn: true },
+  { speaker: "ねむぱん",   text: "すごい……ほんとに全員に勝っちゃった！" },
+  { speaker: "女王",       text: "お見事ですわ。約束の『いいもの』を差し上げましょう" },
+  { speaker: "にむし",     text: "また遊びに来てよね。次は負けないから" },
+  { speaker: "みっちゃん", text: "ばいばい、またね……！" },
+  { speaker: "あなた",     text: "……うん。また来るよ" },
+  { speaker: "",           text: "やわらかな光に包まれて、あなたは元の世界へ帰っていきました。" },
+  { whiteout: true },
+];
 
 const AUDIO = {
   bgm: {
@@ -2951,16 +2976,25 @@ const state = {
 /* ---------- ストーリー画面 ---------- */
 
 const story = {
+  scenes: [],      // いま流している台本（STORY か EPILOGUE、または閲覧中のもの）
   index: 0,        // いま表示している行
   bgSrc: "",       // いま出ている背景。同じ画像を貼り直さないために持つ
   busy: false,     // ホワイトアウト中。ここでの入力は無視する
   lockedUntil: 0,  // この時刻までの入力は無視する（出たばかりの行を飛ばさないため）
+  onFinish: null,  // 最後まで流れた（または途中でやめた）ときの行き先
+  canQuit: false,  // Esc で途中終了できるか（ギャラリーからの閲覧のときだけ true）
 };
 
-/** ストーリーを流すべきか。空配列・視聴済み・保存が使えない場合は流さない。 */
+/** プロローグを流すべきか。空配列・視聴済み・保存が使えない場合は流さない。 */
 function shouldShowStory() {
   if (!Array.isArray(STORY) || STORY.length === 0) return false;
   return !loadStorySeen();
+}
+
+/** エピローグを流すべきか。空配列・視聴済みなら流さない。 */
+function shouldShowEpilogue() {
+  if (!Array.isArray(EPILOGUE) || EPILOGUE.length === 0) return false;
+  return !loadEpilogueSeen();
 }
 
 /** 背景を差し替える。fade なら STORY_FADE_MS かけて現れる。 */
@@ -2998,7 +3032,7 @@ document.getElementById("story-bg").addEventListener("error", () => {
 
 /** 1行ぶんを表示する。whiteout の行に来たらそのまま次の画面へ。 */
 function renderStoryScene() {
-  const scene = STORY[story.index];
+  const scene = story.scenes[story.index];
   if (!scene) { finishStory(); return; }
 
   if (Object.prototype.hasOwnProperty.call(scene, "bg")) {
@@ -3018,7 +3052,7 @@ function renderStoryScene() {
   story.lockedUntil = performance.now() + STORY_INPUT_LOCK_MS;
 }
 
-/** 白くフェードしてからスタート画面へ渡す。 */
+/** 白くフェードしてから次の画面へ渡す。 */
 function runWhiteout() {
   const w = document.getElementById("story-whiteout");
   story.busy = true;
@@ -3041,31 +3075,72 @@ function advanceStory() {
   renderStoryScene();
 }
 
-/** ストーリーを閉じてスタート画面へ。ここで「視聴済み」を記録する。 */
+/** 台本を閉じて、開いた側が決めた行き先へ渡す。 */
 function finishStory() {
-  saveStorySeen(true);
-
   const w = document.getElementById("story-whiteout");
   w.style.transition = "none";
   w.style.opacity = "0";
   story.busy = false;
 
-  showScreen("start");
+  const done = story.onFinish;
+  story.onFinish = null;
+  story.canQuit = false;
+  if (typeof done === "function") done();
+  else showScreen("start");
+}
+
+/** Esc での途中終了。閲覧のときだけ効く。 */
+function quitScenes() {
+  if (currentScreen !== "story" || !story.canQuit) return false;
+  finishStory();
+  return true;
+}
+
+/**
+ * 台本を最初から流す。空なら1行も出さずに onFinish へ直行する。
+ * options.canQuit を立てると Esc で途中終了できる（ギャラリーからの閲覧用）。
+ */
+function playScenes(scenes, onFinish, options) {
+  const list = Array.isArray(scenes) ? scenes : [];
+  const done = (typeof onFinish === "function") ? onFinish : () => showScreen("start");
+
+  if (list.length === 0) { done(); return; }
+
+  story.scenes = list;
+  story.index = 0;
+  story.busy = false;
+  story.lockedUntil = 0;
+  story.onFinish = done;
+  story.canQuit = !!(options && options.canQuit);
+
+  setStoryBg(null, false);                                   // 背景・案内を初期状態に戻す
+  const guide = document.getElementById("story-guide");
+  guide.classList.remove("is-quiet");
+  guide.textContent = story.canQuit
+    ? "クリックまたはキーを押して進む（Esc でやめる）"
+    : "クリックまたはキーを押して進む";
+
+  showScreen("story");
+  renderStoryScene();
 }
 
 document.getElementById("screen-story").addEventListener("click", advanceStory);
 
-/** 起動時の入り口。初回だけストーリー、以降はスタート画面から。 */
+/** 起動時の入り口。初回だけプロローグ、以降はスタート画面から。 */
 function bootFlow() {
   if (!shouldShowStory()) { showScreen("start"); return; }
+  playScenes(STORY, () => {
+    saveStorySeen(true);
+    showScreen("start");
+  });
+}
 
-  story.index = 0;
-  story.busy = false;
-  story.lockedUntil = 0;
-  setStoryBg(null, false);                                   // 背景・案内を初期状態に戻す
-  document.getElementById("story-guide").classList.remove("is-quiet");
-  showScreen("story");
-  renderStoryScene();
+/** 初クリアのときだけ、クリア画面の手前でエピローグを挟む。 */
+function playEpilogue() {
+  playScenes(EPILOGUE, () => {
+    saveEpilogueSeen(true);
+    showClear();
+  });
 }
 
 /* ---------- タイトル画面 ---------- */
@@ -3543,9 +3618,11 @@ function advanceFromDefeat() {
   const next = state.stageIndex + 1;
   if (next < state.order.length) {
     enterStage(next);
-  } else {
-    showClear();
+    return;
   }
+  // 初クリアのときだけエピローグを挟む。2周目以降はそのままクリア画面へ。
+  if (shouldShowEpilogue()) playEpilogue();
+  else showClear();
 }
 
 /* ---------- クリア画面 ---------- */
@@ -3966,6 +4043,58 @@ function buildGallery() {
     item.append(thumb, name);
     grid.appendChild(item);
   });
+
+  scenarioEntries().forEach(sc => grid.appendChild(createScenarioTile(sc)));
+}
+
+/**
+ * ギャラリー末尾に並べるシナリオ。「イラスト N/11」には数えない。
+ * プロローグは初回起動で必ず通るので常に見られる。
+ */
+function scenarioEntries() {
+  return [
+    { id: "prologue", name: "プロローグ", scenes: STORY,    unlocked: true },
+    { id: "epilogue", name: "エピローグ", scenes: EPILOGUE, unlocked: loadEpilogueSeen() },
+  ];
+}
+
+/** シナリオ1つぶんのカード。台本が空なら「準備中」にして開かない。 */
+function createScenarioTile(sc) {
+  const list  = Array.isArray(sc.scenes) ? sc.scenes : [];
+  const ready = list.length > 0;
+
+  const item = document.createElement("div");
+  item.className = "gallery-item scenario " + (sc.unlocked ? "owned" : "locked");
+
+  const thumb = document.createElement("div");
+  thumb.className = "gallery-thumb";
+
+  if (!sc.unlocked) {
+    thumb.textContent = "？";
+  } else if (!ready) {
+    thumb.textContent = "準備中";
+    thumb.classList.add("note");
+  } else {
+    thumb.textContent = "▶";
+    thumb.classList.add("clickable");
+    thumb.addEventListener("click", () => playScenarioFromGallery(sc));
+  }
+
+  const name = document.createElement("div");
+  name.className = "gallery-name";
+  name.textContent = sc.name;
+
+  item.append(thumb, name);
+  return item;
+}
+
+/** 閲覧再生。最後まで見ても Esc でやめても、ギャラリーへ戻る。 */
+function playScenarioFromGallery(sc) {
+  closeGalleryViewer();
+  playScenes(sc.scenes, () => {
+    buildGallery();                 // 見ている間に解放が変わっていても追従させる
+    showScreen("gallery");
+  }, { canQuit: true });
 }
 
 /** 拡大表示。原寸のまま、はみ出すぶんだけ画面に合わせて縮める。 */
@@ -4439,7 +4568,8 @@ function saveBest(earned, newRewardId) {
     selectedBaseTitle:  prog.selectedBaseTitle,
     selectedCrownTitle: prog.selectedCrownTitle,
     soundEnabled:   audio.enabled,
-    storySeen:      prev.storySeen === true,   // 作り直しで消えないよう引き継ぐ
+    storySeen:      prev.storySeen === true,     // 作り直しで消えないよう引き継ぐ
+    epilogueSeen:   prev.epilogueSeen === true,  // 同上
   };
 
   try {
@@ -4583,6 +4713,22 @@ function loadSoundSetting() {
 function loadStorySeen() {
   const b = loadBest() || {};
   return b.storySeen === true;
+}
+
+/** エピローグを見たか。未設定・型違い・保存不可はすべて「まだ」に倒す。 */
+function loadEpilogueSeen() {
+  const b = loadBest() || {};
+  return b.epilogueSeen === true;
+}
+
+function saveEpilogueSeen(seen) {
+  const prev = loadBest() || {};
+  prev.epilogueSeen = !!seen;
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
+  } catch (e) {
+    /* 保存できない環境では毎回エピローグが流れるが、進行は止めない */
+  }
 }
 
 function saveStorySeen(seen) {
@@ -4853,6 +4999,7 @@ document.addEventListener("keydown", (e) => {
     // どのキーでも次の行へ。打鍵判定には一切回さない。
     e.preventDefault();
     if (e.repeat) return;   // 押しっぱなしの連続発火では進めない（行の読み飛ばし防止）
+    if (e.key === "Escape" && quitScenes()) return;   // 閲覧中だけ途中でやめられる
     advanceStory();
     return;
   }
