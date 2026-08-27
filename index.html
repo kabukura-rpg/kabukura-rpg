@@ -1183,6 +1183,100 @@
   .gallery-item.scenario .gallery-thumb.note { font-size: 14px; }
 
   /* 拡大表示。画面いっぱいの黒幕で、どこを押しても閉じる。 */
+  /* ---------- 設定資料集（スライドビューア） ---------- */
+
+  #artbook {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px 0 14px;
+    background: rgba(0, 0, 0, 0.94);
+    cursor: pointer;             /* 背景を押すと閉じる */
+  }
+
+  /* ページ画像の置き場。ページごとに縦横比が違っても位置が動かない。 */
+  #artbook-stage {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #artbook-page {
+    max-width: 88%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: default;             /* 画像の上では閉じない */
+  }
+  #artbook-note {
+    font-size: 16px;
+    color: var(--text);
+    opacity: 0.6;
+  }
+
+  #artbook-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    cursor: default;
+  }
+
+  #artbook-prev,
+  #artbook-next {
+    width: 42px;
+    height: 34px;
+    font-family: inherit;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--bg);
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  #artbook-prev:hover:not(:disabled),
+  #artbook-next:hover:not(:disabled) { filter: brightness(1.1); }
+  #artbook-prev:disabled,
+  #artbook-next:disabled {
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  #artbook-count {
+    min-width: 74px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  #artbook-pdf {
+    flex: none;
+    font-size: 14px;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  #artbook-pdf:hover { filter: brightness(1.2); }
+
+  #artbook-close {
+    flex: none;
+    font-size: 12px;
+    color: var(--text);
+    opacity: 0.6;
+  }
+
   #gallery-viewer {
     position: absolute;
     inset: 0;
@@ -1878,6 +1972,21 @@
     <div id="gallery-grid"></div>
     <button class="btn" id="btn-gallery-back" type="button">タイトルへ戻る</button>
    </div>
+   <!-- 設定資料集のスライドビューア -->
+   <div id="artbook" hidden>
+    <div id="artbook-stage">
+     <img id="artbook-page" alt="">
+     <div id="artbook-note" hidden>準備中</div>
+    </div>
+    <div id="artbook-bar">
+     <button id="artbook-prev" type="button" aria-label="前のページ">‹</button>
+     <span id="artbook-count">1 / 1</span>
+     <button id="artbook-next" type="button" aria-label="次のページ">›</button>
+    </div>
+    <a id="artbook-pdf" href="#" download>PDFをダウンロード</a>
+    <div id="artbook-close">背景をクリック、または Esc で閉じる</div>
+   </div>
+
    <div id="gallery-viewer" hidden>
     <img id="gallery-viewer-img" alt="">
     <div id="gallery-viewer-name"></div>
@@ -2169,6 +2278,19 @@ const REWARDS = [
   { id: "pair_ne_po", src: "assets/ponkotsuNempan.jpeg",  name: "ねむぱん & ポンコツ女王" },
 ];
 
+/**
+ * 設定資料集。ギャラリーの12番目の枠から開くスライドビューアで使う。
+ *   pages … 1ページ1枚の画像。空配列にすると枠が「準備中」になり開かない。
+ *   pdf   … 「PDFをダウンロード」の配布先。null ならリンクを出さない。
+ */
+const ARTBOOK = {
+  pages: [
+    "assets/artbook/01.jpeg",
+    "assets/artbook/02.jpeg",
+  ],
+  pdf: "assets/artbook.pdf",
+};
+
 /** レア枠。通常10枚をすべて集めたクリアで必ず出る。 */
 const REWARD_FINAL = { id: "all", src: "assets/micchanNempanPonkotsuNimushi.jpeg", name: "4人集合" };
 
@@ -2437,10 +2559,10 @@ const TITLE_CHARA = [
     hint: "にむしに一度でも時間切れになる" },
 
   { id: "w_nempan",   chara: "nempan",   type: "win",
-    crown: "🍞 まどろみを断ちし", base: null,
+    crown: "野生に帰りし", base: null,
     hint: "ねむぱんに一度も時間切れせずに勝つ" },
   { id: "l_nempan",   chara: "nempan",   type: "lose",
-    crown: null, base: "ねむぱんの添い寝役",
+    crown: null, base: "モフモフ尻尾",
     hint: "ねむぱんに一度でも時間切れになる" },
 
   { id: "w_ponkotsu", chara: "ponkotsu", type: "win",
@@ -4044,8 +4166,137 @@ function buildGallery() {
     grid.appendChild(item);
   });
 
+  grid.appendChild(createArtbookTile());
   scenarioEntries().forEach(sc => grid.appendChild(createScenarioTile(sc)));
 }
+
+/* ---------- 設定資料集 ---------- */
+
+/** 4人集合を持っていれば開ける。ページが1枚も無ければ「準備中」。 */
+function artbookUnlocked() {
+  if (!REWARD_FINAL) return false;
+  return loadProgress().unlockedRewards.indexOf(REWARD_FINAL.id) !== -1;
+}
+
+function artbookPages() {
+  return (ARTBOOK && Array.isArray(ARTBOOK.pages)) ? ARTBOOK.pages.filter(p => !!p) : [];
+}
+
+/** ギャラリー12番目の枠。イラストの枚数には数えない。 */
+function createArtbookTile() {
+  const unlocked = artbookUnlocked();
+  const ready    = artbookPages().length > 0;
+
+  const item = document.createElement("div");
+  item.className = "gallery-item scenario " + (unlocked ? "owned" : "locked");
+
+  const thumb = document.createElement("div");
+  thumb.className = "gallery-thumb";
+
+  if (!unlocked) {
+    thumb.textContent = "？";
+  } else if (!ready) {
+    thumb.textContent = "準備中";
+    thumb.classList.add("note");
+  } else {
+    thumb.textContent = "❖";
+    thumb.classList.add("clickable");
+    thumb.addEventListener("click", openArtbook);
+  }
+
+  const name = document.createElement("div");
+  name.className = "gallery-name";
+  name.textContent = "設定資料集";
+
+  item.append(thumb, name);
+  return item;
+}
+
+/** いま開いているページ番号（0始まり）。閉じているときは -1。 */
+let artbookIndex = -1;
+
+function openArtbook() {
+  const pages = artbookPages();
+  if (pages.length === 0 || !artbookUnlocked()) return;
+
+  closeGalleryViewer();
+  artbookIndex = 0;
+
+  // PDF は用意されているときだけリンクを出す
+  const pdf = document.getElementById("artbook-pdf");
+  const src = (ARTBOOK && typeof ARTBOOK.pdf === "string" && ARTBOOK.pdf) ? ARTBOOK.pdf : "";
+  pdf.hidden = !src;
+  if (src) {
+    pdf.href = src;
+    pdf.setAttribute("download", "kabukura-rpg-artbook." + (src.split(".").pop() || "pdf"));
+  }
+
+  document.getElementById("artbook").hidden = false;
+  renderArtbook();
+}
+
+/** 閉じたときだけ true を返す（Esc の二重処理を避けるため）。 */
+function closeArtbook() {
+  const el = document.getElementById("artbook");
+  if (el.hidden) return false;
+  el.hidden = true;
+  artbookIndex = -1;
+  return true;
+}
+
+/** ページを1枚だけ動かす。端では動かさない（矢印も無効になる）。 */
+function stepArtbook(delta) {
+  const pages = artbookPages();
+  if (artbookIndex < 0 || pages.length === 0) return;
+  const next = artbookIndex + delta;
+  if (next < 0 || next >= pages.length) return;   // 端を越えない
+  artbookIndex = next;
+  renderArtbook();
+}
+
+function renderArtbook() {
+  const pages = artbookPages();
+  const img   = document.getElementById("artbook-page");
+  const note  = document.getElementById("artbook-note");
+
+  if (artbookIndex < 0 || pages.length === 0) return;
+
+  const src = pages[artbookIndex];
+  img.hidden = false;
+  note.hidden = true;
+  img.alt = "設定資料集 " + (artbookIndex + 1) + "ページ";
+  img.setAttribute("src", src);
+
+  document.getElementById("artbook-count").textContent =
+    (artbookIndex + 1) + " / " + pages.length;
+  document.getElementById("artbook-prev").disabled = (artbookIndex === 0);
+  document.getElementById("artbook-next").disabled = (artbookIndex === pages.length - 1);
+}
+
+/** ページ画像が読み込めなくても止まらない。注記に差し替えて送りは続けられる。 */
+document.getElementById("artbook-page").addEventListener("error", () => {
+  const img = document.getElementById("artbook-page");
+  if (!img.getAttribute("src")) return;
+  img.hidden = true;
+  const note = document.getElementById("artbook-note");
+  note.textContent = "このページの画像はまだありません";
+  note.hidden = false;
+});
+
+document.getElementById("artbook-prev").addEventListener("click", (e) => {
+  e.stopPropagation();
+  stepArtbook(-1);
+});
+document.getElementById("artbook-next").addEventListener("click", (e) => {
+  e.stopPropagation();
+  stepArtbook(1);
+});
+
+// 操作部と画像の上では閉じない。背景を押したときだけ閉じる。
+["artbook-bar", "artbook-pdf", "artbook-page"].forEach(id => {
+  document.getElementById(id).addEventListener("click", (e) => e.stopPropagation());
+});
+document.getElementById("artbook").addEventListener("click", closeArtbook);
 
 /**
  * ギャラリー末尾に並べるシナリオ。「イラスト N/11」には数えない。
@@ -4137,6 +4388,7 @@ document.getElementById("btn-gallery").addEventListener("click", () => {
 });
 
 document.getElementById("btn-gallery-back").addEventListener("click", () => {
+  closeArtbook();
   closeGalleryViewer();
   document.getElementById("gallery-inner").scrollTop = 0;
   showScreen("title");
@@ -5031,10 +5283,15 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (currentScreen === "gallery") {
-    // 打鍵は判定対象外。Esc だけ拡大表示を閉じるのに使う。
+    // 打鍵は判定対象外。Esc で閉じ、設定資料集を開いている間は矢印でページ送り。
     if (e.key === "Escape") {
       e.preventDefault();
-      closeGalleryViewer();
+      if (!closeArtbook()) closeGalleryViewer();
+      return;
+    }
+    if (artbookIndex >= 0 && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      e.preventDefault();
+      stepArtbook(e.key === "ArrowRight" ? 1 : -1);
     }
     return;
   }
