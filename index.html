@@ -909,6 +909,8 @@
   }
 
   .track-row {
+    position: relative;          /* ホバー画像を重ねるため */
+    overflow: hidden;
     width: 560px;
     display: flex;
     align-items: center;
@@ -1096,28 +1098,68 @@
   /* 拡大表示を画面に固定したいので、スクロールは中身側に持たせる */
   #screen-gallery { overflow: hidden; }
 
+  /* 見出し・タブ・戻るボタンは動かさず、枠の並びだけをスクロールさせる。 */
   #gallery-inner {
     width: 100%;
     height: 100%;
-    overflow-y: auto;
-    padding: 22px 0;
+    padding: 18px 0 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   #gallery-head {
-    font-size: 26px;
+    flex: none;
+    font-size: 24px;
     letter-spacing: 0.06em;
     color: var(--accent);
   }
 
+  #gallery-tabs {
+    flex: none;
+    display: flex;
+    gap: 10px;
+  }
+
+  .gallery-tab {
+    padding: 6px 26px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: rgba(20, 14, 10, 0.7);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .gallery-tab:hover { color: var(--accent); }
+
+  /* 選択中のタブは地と文字を反転させて、一目で分かるようにする。 */
+  .gallery-tab.selected {
+    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+    cursor: default;
+  }
+
   #gallery-count {
+    flex: none;
     font-size: 14px;
     color: var(--text);
     opacity: 0.85;
   }
+
+  #gallery-scroll {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  #btn-gallery-back { flex: none; }
 
   #gallery-grid {
     display: grid;
@@ -1135,6 +1177,7 @@
 
   /* 16:9 の枠。画像・「？」・「準備中」のどれが入っても同じ寸法になる。 */
   .gallery-thumb {
+    position: relative;          /* ホバー画像を重ねるため */
     width: 190px;
     height: 107px;
     display: flex;
@@ -1183,6 +1226,24 @@
   .gallery-item.scenario .gallery-thumb.note { font-size: 14px; }
 
   /* 拡大表示。画面いっぱいの黒幕で、どこを押しても閉じる。 */
+  /* 未解禁の枠に重ねるホバー画像。ふだんは透明で、乗せたときだけ現れる。
+     指で触る端末では :hover が貼り付いてしまうので、マウスのある環境だけに絞る。 */
+  .locked-hover {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;        /* クリック判定を奪わない */
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .gallery-item.locked .gallery-thumb:hover > .locked-hover,
+    .track-row.locked:hover .locked-hover { opacity: 1; }
+  }
+
   /* ---------- 設定資料集（スライドビューア） ---------- */
 
   #artbook {
@@ -1968,8 +2029,14 @@
   <section class="screen" id="screen-gallery">
    <div id="gallery-inner">
     <div id="gallery-head">ギャラリー</div>
+    <div id="gallery-tabs" role="tablist">
+     <button class="gallery-tab" id="tab-gallery-art" type="button" role="tab" aria-selected="true">イラスト</button>
+     <button class="gallery-tab" id="tab-gallery-other" type="button" role="tab" aria-selected="false">その他</button>
+    </div>
     <div id="gallery-count">イラスト 0/11</div>
-    <div id="gallery-grid"></div>
+    <div id="gallery-scroll">
+     <div id="gallery-grid"></div>
+    </div>
     <button class="btn" id="btn-gallery-back" type="button">タイトルへ戻る</button>
    </div>
    <!-- 設定資料集のスライドビューア -->
@@ -2285,11 +2352,25 @@ const REWARDS = [
  */
 const ARTBOOK = {
   pages: [
-    "assets/artbook/01.jpeg",
-    "assets/artbook/02.jpeg",
+    "assets/artbook/01.jpeg", "assets/artbook/02.jpeg", "assets/artbook/03.jpeg",
+    "assets/artbook/04.jpeg", "assets/artbook/05.jpeg", "assets/artbook/06.jpeg",
+    "assets/artbook/07.jpeg", "assets/artbook/08.jpeg", "assets/artbook/09.jpeg",
+    "assets/artbook/10.jpeg", "assets/artbook/11.jpeg", "assets/artbook/12.jpeg",
+    "assets/artbook/13.jpeg", "assets/artbook/14.jpeg", "assets/artbook/15.jpeg",
+    "assets/artbook/16.jpeg", "assets/artbook/17.jpeg", "assets/artbook/18.jpeg",
+    "assets/artbook/19.jpeg", "assets/artbook/20.jpeg",
   ],
   pdf: "assets/artbook.pdf",
 };
+
+/** 現在のページから何ページ先まで裏で読み込んでおくか */
+const ARTBOOK_PRELOAD = 1;
+
+/**
+ * 未解禁の枠にマウスを乗せたときに出す画像。
+ * null にする、またはファイルが無い場合は「？」表示のまま何も起きない。
+ */
+const LOCKED_IMAGE = "assets/locked.jpeg";
 
 /** レア枠。通常10枚をすべて集めたクリアで必ず出る。 */
 const REWARD_FINAL = { id: "all", src: "assets/micchanNempanPonkotsuNimushi.jpeg", name: "4人集合" };
@@ -4003,6 +4084,7 @@ function buildSoundtrack() {
     state.className = "track-state";
 
     row.append(play, body, state);
+    attachLockedHover(row);        // 表示は .locked が付いている行だけ（CSS側で制御）
     list.appendChild(row);
   });
 
@@ -4156,18 +4238,61 @@ document.getElementById("btn-soundtrack-back").addEventListener("click", () => {
 /* ---------- ギャラリー ---------- */
 
 /**
+ * 未解禁の枠にだけ、マウスを乗せたときに出る画像を仕込む。
+ * ふだんは透明なので、読み込めなかった場合は取り除けば元の見た目に戻る。
+ * 出し入れの切り替えは CSS 側（.locked が付いていて、マウスのある環境のときだけ）。
+ */
+function attachLockedHover(el) {
+  if (!el || !LOCKED_IMAGE) return;
+
+  const img = document.createElement("img");
+  img.className = "locked-hover";
+  img.alt = "";
+  img.addEventListener("error", () => {
+    if (img.parentNode) img.parentNode.removeChild(img);   // 画像が無ければ元の見た目のまま
+  });
+  img.src = LOCKED_IMAGE;
+  el.appendChild(img);
+}
+
+/**
  * 11枚ぶんのカードを作る。獲得済みはサムネイル、未獲得は「？」。
  * 画像が無い（src が null／読み込めない）ものは「準備中」にして拡大もさせない。
  */
+/** いま開いているタブ。"art"（ご褒美イラスト）か "other"（資料集とシナリオ）。 */
+let galleryTab = "art";
+
+/** タブを切り替えて描き直す。開きっぱなしの拡大表示などは閉じる。 */
+function setGalleryTab(tab) {
+  galleryTab = (tab === "other") ? "other" : "art";
+  closeArtbook();
+  closeGalleryViewer();
+  buildGallery();
+  document.getElementById("gallery-scroll").scrollTop = 0;
+}
+
+document.getElementById("tab-gallery-art").addEventListener("click", () => setGalleryTab("art"));
+document.getElementById("tab-gallery-other").addEventListener("click", () => setGalleryTab("other"));
+
 function buildGallery() {
   const grid  = document.getElementById("gallery-grid");
   const owned = loadProgress().unlockedRewards;
   const list  = allRewards();
 
-  document.getElementById("gallery-count").textContent =
-    "イラスト " + owned.length + "/" + list.length;
+  document.getElementById("tab-gallery-art").classList.toggle("selected", galleryTab === "art");
+  document.getElementById("tab-gallery-other").classList.toggle("selected", galleryTab === "other");
+  document.getElementById("tab-gallery-art").setAttribute("aria-selected", String(galleryTab === "art"));
+  document.getElementById("tab-gallery-other").setAttribute("aria-selected", String(galleryTab === "other"));
 
   grid.textContent = "";
+
+  if (galleryTab === "other") {
+    buildGalleryOther(grid);
+    return;
+  }
+
+  document.getElementById("gallery-count").textContent =
+    "イラスト " + owned.length + "/" + list.length;
 
   list.forEach(r => {
     const has  = owned.indexOf(r.id) !== -1;
@@ -4185,6 +4310,7 @@ function buildGallery() {
 
     if (!has) {
       thumb.textContent = "？";
+      attachLockedHover(thumb);
     } else if (!r.src) {
       asNote("準備中");
     } else {
@@ -4212,8 +4338,16 @@ function buildGallery() {
     grid.appendChild(item);
   });
 
+}
+
+/** 「その他」タブ。設定資料集とシナリオ2本を並べる。イラストの枚数には数えない。 */
+function buildGalleryOther(grid) {
   grid.appendChild(createArtbookTile());
   scenarioEntries().forEach(sc => grid.appendChild(createScenarioTile(sc)));
+
+  const opened = grid.querySelectorAll(".gallery-item.owned").length;
+  document.getElementById("gallery-count").textContent =
+    "その他 " + opened + "/" + grid.children.length;
 }
 
 /* ---------- 設定資料集 ---------- */
@@ -4241,6 +4375,7 @@ function createArtbookTile() {
 
   if (!unlocked) {
     thumb.textContent = "？";
+    attachLockedHover(thumb);
   } else if (!ready) {
     thumb.textContent = "準備中";
     thumb.classList.add("note");
@@ -4260,6 +4395,26 @@ function createArtbookTile() {
 
 /** いま開いているページ番号（0始まり）。閉じているときは -1。 */
 let artbookIndex = -1;
+
+/** 先読み済みのページ。同じ画像を何度も取りに行かないための控え。 */
+const artbookPrefetched = {};
+
+/**
+ * 先のページを裏で読み込んでおく。Image に持たせるだけで表示はしない。
+ * ブラウザのキャッシュに入るので、実際にそのページへ送ったときは待ち時間が出ない。
+ * 失敗しても何もしない（本番の表示側が「画像はまだありません」に落とす）。
+ */
+function prefetchArtbookPages(from) {
+  const pages = artbookPages();
+  for (let i = 1; i <= ARTBOOK_PRELOAD; i++) {
+    const src = pages[from + i];
+    if (!src || artbookPrefetched[src]) continue;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+    artbookPrefetched[src] = img;   // 参照を残す。捨てるとキャッシュから外れることがある
+  }
+}
 
 function openArtbook() {
   const pages = artbookPages();
@@ -4317,6 +4472,8 @@ function renderArtbook() {
     (artbookIndex + 1) + " / " + pages.length;
   document.getElementById("artbook-prev").disabled = (artbookIndex === 0);
   document.getElementById("artbook-next").disabled = (artbookIndex === pages.length - 1);
+
+  prefetchArtbookPages(artbookIndex);   // 表示したら、その次を裏で取っておく
 }
 
 /** ページ画像が読み込めなくても止まらない。注記に差し替えて送りは続けられる。 */
@@ -4368,6 +4525,7 @@ function createScenarioTile(sc) {
 
   if (!sc.unlocked) {
     thumb.textContent = "？";
+    attachLockedHover(thumb);
   } else if (!ready) {
     thumb.textContent = "準備中";
     thumb.classList.add("note");
@@ -4390,7 +4548,7 @@ function playScenarioFromGallery(sc) {
   closeGalleryViewer();
   playScenes(sc.scenes, () => {
     buildGallery();                 // 見ている間に解放が変わっていても追従させる
-    showScreen("gallery");
+    showScreen("gallery");          // タブは開いていたものがそのまま残る
   }, { canQuit: true });
 }
 
@@ -4428,15 +4586,16 @@ document.getElementById("gallery-viewer-save").addEventListener("click", (e) => 
 });
 
 document.getElementById("btn-gallery").addEventListener("click", () => {
+  galleryTab = "art";               // 開くときは必ずイラストから
   buildGallery();
-  document.getElementById("gallery-inner").scrollTop = 0;
+  document.getElementById("gallery-scroll").scrollTop = 0;
   showScreen("gallery");         // タイトルBGMはそのまま鳴らし続ける
 });
 
 document.getElementById("btn-gallery-back").addEventListener("click", () => {
   closeArtbook();
   closeGalleryViewer();
-  document.getElementById("gallery-inner").scrollTop = 0;
+  document.getElementById("gallery-scroll").scrollTop = 0;
   showScreen("title");
 });
 
