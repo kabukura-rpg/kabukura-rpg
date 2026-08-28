@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+え? 帰り気あれ大丈夫?<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -909,8 +909,6 @@
   }
 
   .track-row {
-    position: relative;          /* ホバー画像を重ねるため */
-    overflow: hidden;
     width: 560px;
     display: flex;
     align-items: center;
@@ -1226,7 +1224,7 @@
   .gallery-item.scenario .gallery-thumb.note { font-size: 14px; }
 
   /* 拡大表示。画面いっぱいの黒幕で、どこを押しても閉じる。 */
-  /* 未解禁の枠に重ねるホバー画像。ふだんは透明で、乗せたときだけ現れる。
+  /* 未解禁の枠（ギャラリー）に重ねるホバー画像。ふだんは透明で、乗せたときだけ現れる。
      指で触る端末では :hover が貼り付いてしまうので、マウスのある環境だけに絞る。 */
   .locked-hover {
     position: absolute;
@@ -1240,8 +1238,7 @@
   }
 
   @media (hover: hover) and (pointer: fine) {
-    .gallery-item.locked .gallery-thumb:hover > .locked-hover,
-    .track-row.locked:hover .locked-hover { opacity: 1; }
+    .gallery-item.locked .gallery-thumb:hover > .locked-hover { opacity: 1; }
   }
 
   /* ---------- 設定資料集（スライドビューア） ---------- */
@@ -2285,15 +2282,27 @@ const AUDIO = {
  * loopStart / loopEnd / volume はゲーム中と同じ値を書けば同じ鳴り方になる。
  * src が null（または未配置）の曲は「準備中」になり、再生ボタンが無効になる。
  * author は空文字なら出さない。★作者名はここに入れてください。
+ *
+ * unlock は解禁条件。loadProgress() の結果が渡る。
+ *   p.clearCount     … 累計クリア回数
+ *   p.unlockedTitles … 獲得済みの称号ID（"w_micchan" などでキャラ撃破が分かる）
+ * 省略すると最初から聞ける。満たすまでは曲名が「？？？」になり再生もできない。
  */
 const SOUNDTRACK = [
-  { id: "title",          name: "MIDNIGHT ENCOUNTER　真夜中の邂逅",             author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
-  { id: "title_cleared",  name: "DAYBREAK TOGETHER　夜明けを共に",   author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg" },
-  { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg" },
-  { id: "micchan",        name: "Blooming Keystorm",             author: "", src: "assets/micchan.mp3",     cover: "assets/cover_micchan.jpeg" },
-  { id: "nimushi",        name: "Curse Key Blitz",                 author: "", src: "assets/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg" },
-  { id: "nempan",         name: "PAWPRINT PANIC!",               author: "", src: "assets/nempan_test.mp3", cover: "assets/cover_nempan.jpeg" },
-  { id: "ponkotsu",       name: "Kingdom of Eurobeat",           author: "", src: "assets/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg" },
+  { id: "title",          name: "MIDNIGHT ENCOUNTER　真夜中の邂逅",   author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
+  { id: "title_cleared",  name: "DAYBREAK TOGETHER　夜明けを共に",    author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg",
+    unlock: (p) => p.clearCount >= 1 },
+  { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg",
+    unlock: (p) => p.clearCount >= 2 },
+
+  { id: "micchan",  name: "Blooming Keystorm",   author: "", src: "assets/micchan.mp3",     cover: "assets/cover_micchan.jpeg",
+    unlock: (p) => p.unlockedTitles.indexOf("w_micchan") !== -1 },
+  { id: "nimushi",  name: "Curse Key Blitz",     author: "", src: "assets/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg",
+    unlock: (p) => p.unlockedTitles.indexOf("w_nimushi") !== -1 },
+  { id: "nempan",   name: "PAWPRINT PANIC!",     author: "", src: "assets/nempan_test.mp3", cover: "assets/cover_nempan.jpeg",
+    unlock: (p) => p.unlockedTitles.indexOf("w_nempan") !== -1 },
+  { id: "ponkotsu", name: "Kingdom of Eurobeat", author: "", src: "assets/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg",
+    unlock: (p) => p.unlockedTitles.indexOf("w_ponkotsu") !== -1 },
 ];
 
 const CHARACTERS = [
@@ -4028,7 +4037,14 @@ function buildProfileCards() {
  *   例）return track.id !== "title_flawless" || loadProgress().clearCount >= 2;
  */
 function trackUnlocked(track) {
-  return true;
+  const cond = track && track.unlock;
+  if (cond === undefined || cond === null) return true;   // 条件を書いていない曲は最初から聞ける
+
+  try {
+    return (typeof cond === "function") ? !!cond(loadProgress()) : !!cond;
+  } catch (e) {
+    return true;   // 条件式が壊れていても曲を隠さない（聞けなくなるほうが困るため）
+  }
 }
 
 /** その曲を実際に鳴らせるか（素材があり、解放済みか） */
@@ -4084,7 +4100,6 @@ function buildSoundtrack() {
     state.className = "track-state";
 
     row.append(play, body, state);
-    attachLockedHover(row);        // 表示は .locked が付いている行だけ（CSS側で制御）
     list.appendChild(row);
   });
 
@@ -4138,6 +4153,7 @@ let playerTrack = null;
 /** ジャケットを背景にした再生画面を開く。 */
 function openPlayer(track) {
   if (!track) return;
+  if (!trackUnlocked(track)) return;   // 未解禁の曲は曲名も見せない
   playerTrack = track;
 
   const card = document.getElementById("player-card");
