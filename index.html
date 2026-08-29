@@ -433,6 +433,7 @@
 
   #story-text {
     margin: 0;
+    white-space: pre-line;      /* 台本の \n をそのまま改行として出す */
     font-size: 23px;
     line-height: 1.75;
     color: #FFF3DC;
@@ -458,11 +459,22 @@
      visibility で「見えないが場所は残る」状態にする。 */
   #story-guide.is-quiet { visibility: hidden; }
 
-  /* ホワイトアウト。既定は透明で、最後の行に入ったところで JS が不透明にする。 */
-  #story-whiteout {
+  /* 暗転。blackout: true の行で黒く覆い、そのあいだに背景を入れ替える。 */
+  #story-blackout {
     position: absolute;
     inset: 0;
     z-index: 2;
+    background: #000000;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* ホワイトアウト。既定は透明で、最後の行に入ったところで JS が不透明にする。
+     暗転より前に出したいので z-index はひとつ上。 */
+  #story-whiteout {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
     background: #FFFFFF;
     opacity: 0;
     pointer-events: none;
@@ -1949,6 +1961,7 @@
       <p id="story-text"></p>
     </div>
     <div id="story-guide">クリックまたはキーを押して進む</div>
+    <div id="story-blackout"></div>
     <div id="story-whiteout"></div>
   </section>
 
@@ -2317,7 +2330,10 @@ const TITLE_THEMES = [
  *   speaker  … 話し手の名前。空文字ならナレーション（名前を出さない）。
  *   text     … 本文。
  *   fadeIn   … true なら背景を STORY_FADE_MS かけてゆっくり表示する。
+ *   blackout … true なら一度暗転してから bg に切り替え、ゆっくり明るくする。
+ *              暗転が背景の切り替えを隠すので、fadeIn とは併用しない。
  *   whiteout … true ならその行で白くフェードし、次の画面へ進む（本文は不要）。
+ * text の \n は改行として表示される。
  * この配列を空にすると、ストーリー画面ごと飛ばしてスタート画面から始まる。
  */
 const STORY = [
@@ -2340,22 +2356,56 @@ const STORY_FADE_MS = 1500;
 /** ホワイトアウトにかける時間 */
 const STORY_WHITEOUT_MS = 900;
 
+/** 暗転（blackout: true の行）。黒くなるまでと、そこから明るくなるまでの時間 */
+const STORY_BLACKOUT_MS = 500;
+const STORY_BLACKIN_MS  = 1000;
+
 /** 行が出てから入力を受け付けないでいる時間。連打で読み飛ばすのを防ぐ。 */
 const STORY_INPUT_LOCK_MS = 350;
 
 /**
  * エピローグ。初めてクリアしたときに、クリア画面の手前で1回だけ流れる。
- * 書き方は STORY とまったく同じ（bg / speaker / text / fadeIn / whiteout）。
- * 空配列にすると、そのままクリア画面へ進む。文言は仮。
+ * 書き方は STORY とまったく同じ（bg / speaker / text / fadeIn / blackout / whiteout）。
+ * 暗転から始まり、1行目で背景がゆっくり現れる。
+ * 空配列にすると、そのままクリア画面へ進む。
  */
 const EPILOGUE = [
-  { bg: "assets/title_bg_cleared.jpeg", speaker: "", text: "4人との勝負を終えて、あなたは大きく息をつきました。", fadeIn: true },
-  { speaker: "ねむぱん",   text: "すごい……ほんとに全員に勝っちゃった！" },
-  { speaker: "女王",       text: "お見事ですわ。約束の『いいもの』を差し上げましょう" },
-  { speaker: "にむし",     text: "また遊びに来てよね。次は負けないから" },
-  { speaker: "みっちゃん", text: "ばいばい、またね……！" },
-  { speaker: "あなた",     text: "……うん。また来るよ" },
-  { speaker: "",           text: "やわらかな光に包まれて、あなたは元の世界へ帰っていきました。" },
+  { bg: "assets/title_bg.jpeg", fadeIn: true, speaker: "女王",
+    text: "負けましたわ〜！" },
+
+  { speaker: "にむし",
+    text: "くっ……我が敗北を喫するとは……" },
+
+  { speaker: "ねむぱん",
+    text: "おめでとう！ 私たちに勝ったごほうびに、これをあげるよ" },
+
+  { speaker: "",
+    text: "ねむぱんがあなたの前にそっと手を差し出すと——、\n手のひらから、ポワッと光の玉が出てきました。" },
+
+  { speaker: "あなた",
+    text: "それは……？" },
+
+  { speaker: "",
+    text: "光の玉は徐々に大きくなりながら浮き上がりました。よく見ると、中には何かが見えます。" },
+
+  { bg: "assets/bg_takara.jpg", blackout: true, speaker: "みっちゃん",
+    text: "これは、私たちの『思い出の欠片』だよ" },
+
+  { speaker: "",
+    text: "そこには季節の風景や、四人が仲良く遊ぶ光景が映し出されていました。" },
+
+  { speaker: "ねむぱん",
+    text: "タイピング勝負に勝ったら、また『思い出の欠片』をあげるね！" },
+
+  { speaker: "女王",
+    text: "欠片はたくさんありますわ。ギャラリーでお確かめくださいね" },
+
+  { speaker: "にむし",
+    text: "ただしダブることもある。そこは貴様の運次第——というところか" },
+
+  { speaker: "みっちゃん",
+    text: "さあ、夜も明けてきましたね。またタイピング勝負をしましょ♪" },
+
   { whiteout: true },
 ];
 
@@ -3365,6 +3415,7 @@ const story = {
   lockedUntil: 0,  // この時刻までの入力は無視する（出たばかりの行を飛ばさないため）
   onFinish: null,  // 最後まで流れた（または途中でやめた）ときの行き先
   canQuit: false,  // Esc で途中終了できるか（ギャラリーからの閲覧のときだけ true）
+  blackTimer: null, // 暗転の途中経過。閲覧を途中でやめたときに止める
 };
 
 /** プロローグを流すべきか。空配列・視聴済み・保存が使えない場合は流さない。 */
@@ -3417,12 +3468,20 @@ function renderStoryScene() {
   const scene = story.scenes[story.index];
   if (!scene) { finishStory(); return; }
 
+  if (scene.blackout === true) { runBlackout(scene); return; }   // 背景の差し替えも暗転側で行う
+
   if (Object.prototype.hasOwnProperty.call(scene, "bg")) {
     setStoryBg(scene.bg, scene.fadeIn === true);
   }
 
   if (scene.whiteout === true) { runWhiteout(); return; }
 
+  showSceneText(scene);
+  story.lockedUntil = performance.now() + STORY_INPUT_LOCK_MS;
+}
+
+/** 話し手と本文を出す。text の \n は改行になる（CSS の white-space: pre-line）。 */
+function showSceneText(scene) {
   const speakerEl = document.getElementById("story-speaker");
   const speaker = (typeof scene.speaker === "string") ? scene.speaker : "";
   speakerEl.textContent = speaker;
@@ -3430,8 +3489,41 @@ function renderStoryScene() {
 
   document.getElementById("story-text").textContent =
     (typeof scene.text === "string") ? scene.text : "";
+}
 
-  story.lockedUntil = performance.now() + STORY_INPUT_LOCK_MS;
+/** 覆いの板（暗転・ホワイトアウト）を ms かけて to まで動かす。 */
+function fadeLayer(el, to, ms) {
+  el.style.transition = "none";
+  el.style.opacity = (to === 0) ? "1" : "0";
+  void el.offsetWidth;                   // 強制リフロー。非表示タブでも確実に効かせる
+  el.style.transition = "opacity " + (ms / 1000) + "s ease-in-out";
+  el.style.opacity = String(to);
+}
+
+/**
+ * 暗転をはさんで場面を切り替える。黒で覆う → 真っ暗なうちに背景と本文を入れ替える
+ * → ゆっくり明ける。プロローグ・エピローグどちらの台本でも blackout: true で使える。
+ */
+function runBlackout(scene) {
+  const black = document.getElementById("story-blackout");
+  const guide = document.getElementById("story-guide");
+
+  story.busy = true;                     // 暗転が明けるまで先へ進めない
+  guide.classList.add("is-quiet");
+  fadeLayer(black, 1, STORY_BLACKOUT_MS);
+
+  clearTimeout(story.blackTimer);
+  story.blackTimer = setTimeout(() => {
+    // 見えていないあいだに差し替える。ここでのフェードは暗転が兼ねるので使わない。
+    if (Object.prototype.hasOwnProperty.call(scene, "bg")) setStoryBg(scene.bg, false);
+    showSceneText(scene);
+
+    guide.classList.remove("is-quiet");
+    fadeLayer(black, 0, STORY_BLACKIN_MS);
+
+    story.busy = false;
+    story.lockedUntil = performance.now() + STORY_BLACKIN_MS;   // 明けきるまでは読ませる
+  }, STORY_BLACKOUT_MS);
 }
 
 /** 白くフェードしてから次の画面へ渡す。 */
@@ -3440,12 +3532,7 @@ function runWhiteout() {
   story.busy = true;
   document.getElementById("story-guide").classList.add("is-quiet");
 
-  w.style.transition = "none";
-  w.style.opacity = "0";
-  void w.offsetWidth;                    // 強制リフロー
-  w.style.transition = "opacity " + (STORY_WHITEOUT_MS / 1000) + "s ease-in";
-  w.style.opacity = "1";
-
+  fadeLayer(w, 1, STORY_WHITEOUT_MS);
   setTimeout(finishStory, STORY_WHITEOUT_MS);
 }
 
@@ -3459,9 +3546,9 @@ function advanceStory() {
 
 /** 台本を閉じて、開いた側が決めた行き先へ渡す。 */
 function finishStory() {
-  const w = document.getElementById("story-whiteout");
-  w.style.transition = "none";
-  w.style.opacity = "0";
+  clearTimeout(story.blackTimer);        // 暗転の途中でやめても後から発火させない
+  story.blackTimer = null;
+  resetStoryLayers();
   story.busy = false;
 
   const done = story.onFinish;
@@ -3469,6 +3556,15 @@ function finishStory() {
   story.canQuit = false;
   if (typeof done === "function") done();
   else showScreen("start");
+}
+
+/** 暗転・ホワイトアウトの板を透明に戻す（transition なしで即座に） */
+function resetStoryLayers() {
+  ["story-blackout", "story-whiteout"].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.transition = "none";
+    el.style.opacity = "0";
+  });
 }
 
 /** Esc での途中終了。閲覧のときだけ効く。 */
@@ -3495,6 +3591,9 @@ function playScenes(scenes, onFinish, options) {
   story.onFinish = done;
   story.canQuit = !!(options && options.canQuit);
 
+  clearTimeout(story.blackTimer);
+  story.blackTimer = null;
+  resetStoryLayers();
   setStoryBg(null, false);                                   // 背景・案内を初期状態に戻す
   const guide = document.getElementById("story-guide");
   guide.classList.remove("is-quiet");
