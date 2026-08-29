@@ -937,13 +937,26 @@
     letter-spacing: 0.04em;
   }
   #defeat-line { font-size: 22px; }
+  /* ラベル列と数値列の2列。数値の桁が揃うので上下のタイムが読み比べやすい。 */
   #defeat-stats {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-items: baseline;
+    gap: 6px 16px;
     font-size: 18px;
     padding: 10px 26px;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 4px;
   }
+  #defeat-stats .stat-label {
+    font-size: 15px;
+    opacity: 0.75;
+    text-align: right;
+    white-space: nowrap;
+  }
+  #defeat-stats .stat-value { text-align: left; white-space: nowrap; }
   #defeat-stats b {
     color: var(--accent);
     font-variant-numeric: tabular-nums;
@@ -2771,7 +2784,7 @@ const TITLE_CHARA = [
     hint: "みっちゃんで時間切れになる" },
 
   { id: "w_nimushi",  chara: "nimushi",  type: "win",
-    crown: "🌑 闇を払いし", base: null,
+    crown: "闇を払いし", base: null,
     hint: "にむしに勝つ" },
   { id: "l_nimushi",  chara: "nimushi",  type: "lose",
     crown: null, base: "にむしの眷属",
@@ -4056,11 +4069,9 @@ function showDefeat() {
 
   const stats = document.getElementById("defeat-stats");
   stats.textContent = "";
-  stats.append("⏱ ");
-  stats.appendChild(bold(stageTime()));
-  stats.append(" / 正確率 ");
-  stats.appendChild(bold(stageAccuracyPercent()));
-  stats.append("%");
+  stats.appendChild(statRow("STAGE TIME",
+    [bold(stageTime()), " ／ 正確率 ", bold(stageAccuracyPercent()), "%"]));
+  stats.appendChild(statRow("TOTAL TIME ", [bold(totalTime())]));
 
   showScreen("defeat");
 }
@@ -4071,9 +4082,32 @@ function bold(value) {
   return b;
 }
 
+/** 撃破画面の統計1行。ラベル列と値列を続けて足す（親が2列グリッド） */
+function statRow(label, parts) {
+  const row = document.createDocumentFragment();
+  const l = document.createElement("span");
+  l.className = "stat-label";
+  l.textContent = label;
+  const v = document.createElement("span");
+  v.className = "stat-value";
+  parts.forEach(part => v.append(part));
+  row.appendChild(l);
+  row.appendChild(v);
+  return row;
+}
+
 /** その相手に費やした時間（時間切れリトライぶんを含む） */
 function stageTime() {
   return formatTime(state.stageMs);
+}
+
+/**
+ * ゲーム開始からここまでの合計。クリア画面と称号判定が使う state.totalMs を
+ * そのまま出すので、別のタイマーは持たない。撃破時は stopTimer() 済みで、
+ * この相手のぶんまで積まれた状態になっている。
+ */
+function totalTime() {
+  return formatTime(state.totalMs);
 }
 
 /** その相手だけの正確率 */
