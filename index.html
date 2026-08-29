@@ -1563,10 +1563,12 @@
   [hidden] { display: none !important; }
 
   /* ごほうびイラスト。縦長でも横長でも 260px を超えない。 */
+  /* 高さを先に確保しておく。読み込み後に場所が広がって、
+     下の豆知識や称号が押し下げられるのを防ぐ。 */
   .finale {
     width: auto;
     max-width: 100%;
-    max-height: 260px;
+    height: 260px;
     object-fit: contain;
     display: block;
     opacity: 0;
@@ -1620,6 +1622,9 @@
     border-bottom: 1px solid var(--border);
   }
   #reward-save:hover { filter: brightness(1.2); }
+
+  /* 読み込みが終わるまでは見せないが、場所は空けておく（あとでずれないように） */
+  #reward-save.is-waiting { visibility: hidden; }
 
   #clear-head {
     font-size: 40px;
@@ -3146,11 +3151,26 @@ const SCREENS = {
 
 let currentScreen = "title";
 
+/**
+ * 画面の中でスクロールする入れ物。画面そのものが動くもの（クリア画面など）は
+ * セクション側を直接戻すので、ここには内側の入れ物だけを並べる。
+ * スクロールする箱を増やしたときは、ここにも足すこと。
+ */
+const SCROLL_BOXES = "#gallery-scroll, #soundtrack-scroll, .titles-list";
+
+/** 画面を出すたびにスクロールを先頭へ戻す。前回見ていた位置を持ち越さないため。 */
+function resetScroll(section) {
+  if (!section) return;
+  section.scrollTop = 0;
+  section.querySelectorAll(SCROLL_BOXES).forEach(box => { box.scrollTop = 0; });
+}
+
 function showScreen(name) {
   Object.keys(SCREENS).forEach(k => {
     SCREENS[k].classList.toggle("active", k === name);
   });
   currentScreen = name;
+  resetScroll(SCREENS[name]);
 }
 
 /* ---------- 難易度テーブル ---------- */
@@ -3210,6 +3230,7 @@ const state = {
   timeoutStreak: {},   // キャラID -> 連続で時間切れになった回数。倒した時点で 0 に戻す
   timeoutSeen: {},     // キャラID -> 一度でも時間切れになったか（四天王箱推しの判定）
   lastRemainingMs: 0,  // 最後の相手を倒した瞬間の残り時間（お祈り投資家の判定）
+  pendingReward: null, // 撃破直後に決めたごほうび。クリア画面で使う
   clearTitleBaseId: null,   // クリア画面・X共有に使う本体称号
   clearTitleCrownId: null,  // クリア画面・X共有に使う冠称号。null は冠なし
 };
@@ -3515,7 +3536,7 @@ function enterTitle() {
 
 // ボタン類のクリック音はまとめて拾う（個別の listener を汚さない）
 document.getElementById("stage").addEventListener("click", (e) => {
-  if (e.target.closest("button, #reward-save, #gallery-viewer-save, .gallery-thumb.clickable")) playSe(AUDIO.se.click);
+  if (e.target.closest("button, #title-titles, #reward-save, #gallery-viewer-save, .gallery-thumb.clickable")) playSe(AUDIO.se.click);
 });
 
 // 自動再生制限の解除は「はじめる」と音トグルから。
@@ -3537,7 +3558,6 @@ document.getElementById("btn-profile").addEventListener("click", () => {
 });
 
 document.getElementById("btn-profile-back").addEventListener("click", () => {
-  document.getElementById("screen-profile").scrollTop = 0;
   showScreen("title");            // 人物紹介からの復帰。BGMはタイトルのまま鳴り続ける
 });
 
@@ -3552,6 +3572,7 @@ titleCountLink.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
   e.preventDefault();
   e.stopPropagation();              // タイトル画面の Enter=ゲーム開始へ流さない
+  playSe(AUDIO.se.click);           // クリックの listener を通らないのでここで鳴らす
   openTitlesScreen();
 });
 
@@ -3649,6 +3670,7 @@ function restartFromTitle() {
   state.timeoutStreak = {};
   state.timeoutSeen = {};
   state.lastRemainingMs = 0;
+  state.pendingReward = null;
 
   document.getElementById("glow").classList.remove("on");
   document.getElementById("hud-time").classList.remove("penalty");
@@ -3678,6 +3700,7 @@ function startGame() {
   state.timeoutStreak = {};
   state.timeoutSeen = {};
   state.lastRemainingMs = 0;
+  state.pendingReward = null;
   armImeWatch();       // タイマーとは独立して走らせる
   enterStage(0);
 }
@@ -3877,10 +3900,28 @@ function advanceFromDefeat() {
     enterStage(next);
     return;
   }
+
+  // ごほうびはここで決めてしまい、画像を裏で読み込ませておく。
+  // エピローグを読んでいるあいだに読み終わるので、クリア画面で待たされない。
+  state.pendingReward = drawReward();
+  prefetchRewardImage(state.pendingReward);
+
   // 初クリアのときだけエピローグを挟む。2周目以降はそのままクリア画面へ。
   if (shouldShowEpilogue()) playEpilogue();
   else showClear();
 }
+
+/** 決まったごほうびの画像を先に取りに行く。失敗しても何もしない。 */
+function prefetchRewardImage(gained) {
+  const src = gained && gained.reward && gained.reward.src;
+  if (!src) return;
+  const img = new Image();
+  img.decoding = "async";
+  img.src = src;
+  rewardPrefetch = img;            // 参照を残す。捨てるとキャッシュから外れることがある
+}
+
+let rewardPrefetch = null;
 
 /* ---------- クリア画面 ---------- */
 
@@ -3932,7 +3973,9 @@ function showClear() {
   renderTip();
 
   // 抽選は保存より先。いま持っているぶんで引かないと、必ず初入手になってしまう。
-  const gained = drawReward();
+  // 撃破直後に決めてあればそれを使う（画像の読み込みが先に済んでいる）。
+  const gained = state.pendingReward || drawReward();
+  state.pendingReward = null;
   renderReward(gained.reward, gained.isNew);
 
   // 先に保存することで、今回初めて取った称号も直後の称号選択で選べる。
@@ -4239,7 +4282,6 @@ document.getElementById("btn-soundtrack-stop").addEventListener("click", () => {
 
 document.getElementById("btn-soundtrack").addEventListener("click", () => {
   buildSoundtrack();
-  document.getElementById("soundtrack-scroll").scrollTop = 0;
   showScreen("soundtrack");          // タイトルBGMは鳴ったまま。行の色で今の曲が分かる
 });
 
@@ -4247,7 +4289,6 @@ document.getElementById("btn-soundtrack-back").addEventListener("click", () => {
   closePlayer();
   stopBgm();                         // 画面を離れたら試聴は止める
   renderSoundtrackState();           // 「再生中」の表示を残さない
-  document.getElementById("soundtrack-scroll").scrollTop = 0;
   enterTitle();                      // タイトルの背景とBGMを選び直す
 });
 
@@ -4284,7 +4325,7 @@ function setGalleryTab(tab) {
   closeArtbook();
   closeGalleryViewer();
   buildGallery();
-  document.getElementById("gallery-scroll").scrollTop = 0;
+  document.getElementById("gallery-scroll").scrollTop = 0;   // 画面遷移を挟まないので個別に戻す
 }
 
 document.getElementById("tab-gallery-art").addEventListener("click", () => setGalleryTab("art"));
@@ -4604,14 +4645,12 @@ document.getElementById("gallery-viewer-save").addEventListener("click", (e) => 
 document.getElementById("btn-gallery").addEventListener("click", () => {
   galleryTab = "art";               // 開くときは必ずイラストから
   buildGallery();
-  document.getElementById("gallery-scroll").scrollTop = 0;
   showScreen("gallery");         // タイトルBGMはそのまま鳴らし続ける
 });
 
 document.getElementById("btn-gallery-back").addEventListener("click", () => {
   closeArtbook();
   closeGalleryViewer();
-  document.getElementById("gallery-scroll").scrollTop = 0;
   showScreen("title");
 });
 
@@ -4686,19 +4725,38 @@ function renderReward(reward, isNew) {
   badge.hidden = !isNew;
 
   img.classList.remove("visible");   // 前回のフェードを解除してから貼り直す
-  img.hidden = true;
-  save.hidden = true;
 
-  if (!reward.src) {                 // src が無い絵。画像は出さず名前だけ残す
+  if (!reward.src) {                 // src が無い絵。枠ごと畳んで名前だけ残す
+    img.hidden = true;
+    save.hidden = true;
     img.removeAttribute("src");
     return;
   }
+
+  // 読み込み中も場所は空けておく（透明なだけで高さは持つ）
+  img.hidden = false;
+  save.hidden = false;
+  save.classList.add("is-waiting");
 
   img.alt = reward.name || "";
   save.href = reward.src;
   save.setAttribute("download",
     "kabukura-rpg-" + reward.id + "." + (reward.src.split(".").pop() || "jpg"));
   img.src = reward.src;
+
+  // 同じ絵が続けて当たると src が変わらず load が飛ばない。
+  // 読み込み済みならその場で表示状態にする。
+  if (img.complete && img.naturalWidth > 0) showRewardImage();
+}
+
+/** 画像が使える状態になったときの見た目。load からも、キャッシュ済みの判定からも呼ぶ。 */
+function showRewardImage() {
+  const img  = document.getElementById("reward-img");
+  const save = document.getElementById("reward-save");
+  img.hidden = false;
+  img.classList.add("visible");      // 0.6秒でフェードイン
+  save.hidden = false;
+  save.classList.remove("is-waiting");
 }
 
 /** 読み込みの成否で、画像と保存リンクをまとめて出し入れする。 */
@@ -4706,15 +4764,12 @@ function renderReward(reward, isNew) {
   const img  = document.getElementById("reward-img");
   const save = document.getElementById("reward-save");
 
-  img.addEventListener("load", () => {
-    img.hidden = false;
-    img.classList.add("visible");    // 0.6秒でフェードイン
-    save.hidden = false;
-  });
+  img.addEventListener("load", showRewardImage);
 
   img.addEventListener("error", () => {
     img.hidden = true;               // 画像も保存リンクも消し、名前だけ残す
     save.hidden = true;
+    save.classList.remove("is-waiting");
   });
 })();
 
