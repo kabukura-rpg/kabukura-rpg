@@ -10,21 +10,12 @@
   公開URLが決まったら、下の3つの絶対URLと <script> 内の SHARE_URL を同じ値に揃えること。
   ズレたまま読み込むと、起動時にコンソールへ警告が出る（syncOgpTags）。
 -->
-  <!--
 <meta property="og:title" content="株クラTPG">
 <meta property="og:description" content="投資用語をタイピングして4人に挑戦しよう">
 <meta property="og:image" content="https://kabukura-rpg.github.io/kabukura-rpg/assets/ogp.jpg">
 <meta property="og:url" content="https://kabukura-rpg.github.io/kabukura-rpg/">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary_large_image">　-->
-
-<meta property="og:title" content="株クラTPG">
-<meta property="og:description" content="投資用語をタイピングして4人に挑戦しよう">
-<meta property="og:image" content="https://kabukura-rpg.github.io/kabukura-rpg/assets/ogp.jpg?v=2">
-<meta property="og:url" content="https://kabukura-rpg.github.io/kabukura-rpg/">
-<meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://kabukura-rpg.github.io/kabukura-rpg/assets/ogp.jpg?v=2">
 <style>
   :root {
     --bg:        #1E1812;
@@ -6013,5 +6004,47 @@ renderRewardCount();
 bootFlow();   // 初回はストーリー、以降はスタート画面。スタート画面での操作で音が解禁される
 </script>
 
+
+<script>
+(function(){
+  function log(tag,val){ new Image().src = "/__LOG?" + encodeURIComponent(tag+" = "+val) + "&t=" + Date.now() + Math.random(); }
+  const W = ms => new Promise(r=>setTimeout(r,ms));
+  const st = () => audio.ctx ? audio.ctx.state : "null(未生成)";
+  let done = false;
+
+  window.addEventListener("load", () => {
+    log("0_操作前", "ctx=" + st() + " enabled=" + audio.enabled);
+
+    const run = async (why) => {
+      if (done) return; done = true;
+      try {
+        // ここは本物のユーザー操作の中。ゲームと同じ順序で解禁する。
+        unlockAudio();
+        log("1_操作の中でunlockAudio", why + " / ctx=" + st());
+        setSoundEnabled(true);
+        log("2_音ON直後", "ctx=" + st() + " enabled=" + audio.enabled);
+
+        await W(2500);
+        log("3_先読み後", "ctx=" + st() + " broken=" + (Object.keys(audio.broken).join(",")||"なし"));
+
+        playBgm(titleBgmEntry());
+        playSe(AUDIO.se.click);
+        await W(1000);
+        log("4_再生要求後", "ctx=" + st() + " bgm=" + audio.bgmCurrent + " node=" + (!!audio.bgmNode) + " voices=" + audio.seVoices.length);
+
+        const t1 = audio.ctx ? audio.ctx.currentTime : 0;
+        await W(1500);
+        const t2 = audio.ctx ? audio.ctx.currentTime : 0;
+        log("5_時計", t1.toFixed(3) + " → " + t2.toFixed(3) + " / state=" + st());
+        log("6_判定", (t2 > t1 && st() === "running") ? "★音が出ている" : "×まだ無音");
+      } catch (e) {
+        log("9_プローブ例外", String(e));
+      }
+    };
+    document.addEventListener("pointerdown", () => run("クリック"));
+    document.addEventListener("keydown",     () => run("キー入力"));
+  });
+})();
+</script>
 </body>
 </html>
