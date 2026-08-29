@@ -12,7 +12,7 @@
 -->
 <meta property="og:title" content="株クラTPG">
 <meta property="og:description" content="投資用語をタイピングして4人に挑戦しよう">
-<meta property="og:image" content="https://kabukura-rpg.github.io/kabukura-rpg/assets/ogp2.jpg">
+<meta property="og:image" content="https://kabukura-rpg.github.io/kabukura-rpg/assets/ogp.jpg">
 <meta property="og:url" content="https://kabukura-rpg.github.io/kabukura-rpg/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
@@ -657,96 +657,16 @@
     color: var(--hp);
   }
 
-  /* ハート1つ。外側は揺れ、内側は拡大・発光・縮小を担当する
-     （1要素に transform を2つ当てられないので役割を分ける）。 */
+  /* ダメージで消えるハート。縮小しながら薄くなって、消えたら要素ごと取り除く。 */
   .heart {
     display: inline-block;
     line-height: 1;
-    will-change: transform;
   }
-  .heart-core {
-    display: inline-block;
-    line-height: 1;
-    will-change: transform, filter, opacity;
-  }
+  .heart.dying { animation: heart-fade 0.45s ease-in forwards; }
 
-  /* ダメージを受けたハート。ドクン→ガタガタ→白フラッシュ→縮小フェード。 */
-  .heart.dying { animation: heart-shake 0.2s steps(2, end) 0.12s 5; }
-  .heart.dying .heart-core { animation: heart-pop 0.62s ease-out forwards; }
-
-  @keyframes heart-shake {
-    0%   { transform: translateX(-2px); }
-    50%  { transform: translateX(2px); }
-    100% { transform: translateX(-2px); }
-  }
-
-  @keyframes heart-pop {
-    0%   { transform: scale(1);    filter: none; }
-    10%  { transform: scale(1.45); }                                   /* ドクン */
-    20%  { transform: scale(1.05); }
-    50%  { transform: scale(1.05); filter: none; color: var(--hp);
-           text-shadow: none; }                                        /* ここまで揺れ */
-    56%  { transform: scale(1.35); color: #FFFFFF;                     /* 白フラッシュ */
-           text-shadow: 0 0 6px #FFFFFF, 0 0 14px #FFFFFF, 0 0 26px #FFD9D9;
-           filter: brightness(4) drop-shadow(0 0 10px #FFFFFF) drop-shadow(0 0 22px #FFD9D9); }
-    68%  { transform: scale(1.1);  color: #FFFFFF;
-           text-shadow: 0 0 5px #FFFFFF, 0 0 12px #FFC9C9;
-           filter: brightness(4) drop-shadow(0 0 16px #FFFFFF); }
-    100% { transform: scale(0.15); opacity: 0;                         /* 縮小して消える */
-           text-shadow: 0 0 4px #FFFFFF;
-           filter: brightness(2) drop-shadow(0 0 6px #FFFFFF); }
-  }
-
-  /* 破片と衝撃波の置き場。ハートが消えたあとも残せるよう画面側に持たせる。 */
-  #hp-fx {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 4;
-  }
-
-  .hp-burst {
-    position: absolute;
-    width: 0;
-    height: 0;
-  }
-
-  /* 放射状に飛ぶ破片。--a が角度、--d が飛距離。 */
-  .hp-shard {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 5px;
-    height: 5px;
-    margin: -2.5px 0 0 -2.5px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #FFE2E2 0%, #FF6B5A 45%, var(--hp) 100%);
-    box-shadow: 0 0 6px rgba(255, 140, 120, 0.9);
-    animation: hp-shard-fly 0.42s cubic-bezier(0.15, 0.6, 0.3, 1) forwards;
-  }
-
-  @keyframes hp-shard-fly {
-    0%   { transform: rotate(var(--a)) translateX(2px) scale(1);   opacity: 1; }
-    70%  { opacity: 0.9; }
-    100% { transform: rotate(var(--a)) translateX(var(--d)) scale(0.2); opacity: 0; }
-  }
-
-  /* 中心から広がる衝撃波 */
-  .hp-shock {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 22px;
-    height: 22px;
-    margin: -11px 0 0 -11px;
-    border: 2px solid rgba(255, 220, 210, 0.95);
-    border-radius: 50%;
-    animation: hp-shock-grow 0.4s ease-out forwards;
-  }
-
-  @keyframes hp-shock-grow {
-    0%   { transform: scale(0.25); opacity: 0.95; border-width: 3px; }
-    100% { transform: scale(2.8);  opacity: 0;    border-width: 1px; }
+  @keyframes heart-fade {
+    0%   { transform: scale(1);    opacity: 1; }
+    100% { transform: scale(0.15); opacity: 0; }
   }
 
   #enemy-area {
@@ -2055,7 +1975,6 @@
       </span>
     </div>
     <div id="ime-warning" hidden>日本語入力がONになっていませんか？ 半角英数に切り替えてください</div>
-    <div id="hp-fx"></div>
     <div id="glow"></div>
     <div id="enemy-area"><div id="enemy-face" class="face"></div></div>
     <div id="spell-area">
@@ -2434,6 +2353,7 @@ const AUDIO = {
     click:   "assets/se_click.mp3",
     type:    { src: "assets/se_type.mp3", volume: 1.0 },   // 打鍵音。ここで個別に上げ下げできる
     miss:    "assets/se_miss.mp3",
+    complete: { src: "assets/se_compleate.mp3", volume: 1.0 },   // 呪文を1つ打ち切った瞬間
     defeat:  "assets/se_defeat.mp3",   // プレイヤーが勝ったとき
     timeup:  "assets/se_timeup.mp3",   // プレイヤーが負けたとき
     clear:   "assets/se_clear.mp3",
@@ -3349,10 +3269,8 @@ const INTRO_MS  = 1500;   // 戦闘開始演出。この間タイマーは止ま
 
 const GLOW_MS          = 150;    // 撃ち込んだときの発光
 
-/* ハートが割れる演出。CSS の heart-pop と同じ長さにする（ずれると消え残る）。 */
-const HEART_POP_MS     = 620;    // ドクン→揺れ→白フラッシュ→縮小フェードの合計
-const HEART_BURST_MS   = 400;    // 破裂（破片と衝撃波）を出すタイミング
-const HEART_SHARDS     = 9;      // 飛ばす破片の数
+/* ハートが消える演出。CSS の heart-fade と同じ長さにする（ずれると消え残る）。 */
+const HEART_FADE_MS    = 450;    // 縮小＋フェードアウトにかける時間
 const IME_WATCH_MS     = 5000;   // この時間ぜんぶ空振りなら IME 警告
 const MISS_PENALTY_MS  = 3000;   // ミス1回あたりの残り時間の減点
 const PENALTY_FLASH_MS = 200;    // 減点時の点滅
@@ -4043,23 +3961,18 @@ function renderHp() {
 function createHeart() {
   const heart = document.createElement("span");
   heart.className = "heart";
-  const core = document.createElement("span");
-  core.className = "heart-core";
-  core.textContent = "♥";
-  heart.appendChild(core);
+  heart.textContent = "\u2665";
   return heart;
 }
 
-/** 演出の後片付け。画面をまたぐときに残骸を持ち越さない。 */
+/** 演出の後片付け。画面をまたぐときに消しかけを持ち越さない。 */
 function clearHeartEffects() {
   state.heartTimers.forEach(clearTimeout);
   state.heartTimers = [];
-  const fx = document.getElementById("hp-fx");
-  if (fx) fx.textContent = "";
 }
 
 /**
- * ダメージを1つぶん見せる。右端のハートを割ってから取り除く。
+ * ダメージを1つぶん見せる。右端のハートを縮小＋フェードアウトさせてから取り除く。
  * state.hp はすでに減っている前提で呼ぶ。
  */
 function loseHeart() {
@@ -4077,48 +3990,10 @@ function loseHeart() {
 
   target.classList.add("dying");
 
-  // 破裂は白フラッシュに合わせて少し遅らせる
-  state.heartTimers.push(setTimeout(() => burstAt(target), HEART_BURST_MS));
-
   // 消え終わったら要素ごと取り除く（色なしのハートを残さない）
   state.heartTimers.push(setTimeout(() => {
     if (target.parentNode) target.parentNode.removeChild(target);
-  }, HEART_POP_MS));
-}
-
-/** ハートの中心から破片を放射状に飛ばし、衝撃波を1つ広げる。 */
-function burstAt(heart) {
-  const fx = document.getElementById("hp-fx");
-  if (!fx || !heart.parentNode) return;
-
-  const base = fx.getBoundingClientRect();
-  const r = heart.getBoundingClientRect();
-
-  const burst = document.createElement("div");
-  burst.className = "hp-burst";
-  burst.style.left = (r.left - base.left + r.width / 2) + "px";
-  burst.style.top  = (r.top  - base.top  + r.height / 2) + "px";
-
-  const shock = document.createElement("div");
-  shock.className = "hp-shock";
-  burst.appendChild(shock);
-
-  for (let i = 0; i < HEART_SHARDS; i++) {
-    const shard = document.createElement("div");
-    shard.className = "hp-shard";
-    // 均等割りに少しばらつきを足して、機械的に見えないようにする
-    const angle = (360 / HEART_SHARDS) * i + (rng() * 18 - 9);
-    const dist  = 16 + rng() * 14;
-    shard.style.setProperty("--a", angle + "deg");
-    shard.style.setProperty("--d", dist.toFixed(1) + "px");
-    shard.style.animationDelay = (rng() * 40).toFixed(0) + "ms";
-    burst.appendChild(shard);
-  }
-
-  fx.appendChild(burst);
-  state.heartTimers.push(setTimeout(() => {
-    if (burst.parentNode) burst.parentNode.removeChild(burst);
-  }, 520));
+  }, HEART_FADE_MS));
 }
 
 function nextSpell() {
@@ -4134,9 +4009,13 @@ function onSpellCompleted() {
   loseHeart();          // renderHp() だと演出中の要素ごと作り直してしまう
 
   if (state.hp > 0) {
+    playSe(AUDIO.se.complete);   // 発光と同じタイミング。打鍵音とは別に重なって鳴る
     nextSpell();
     return;
   }
+
+  // 撃破の一撃では complete を鳴らさない。showDefeat() が stopAllSe() で
+  // 鳴っている音を止めてから defeat を鳴らすため、鳴らしても頭だけで切れてしまう。
 
   // 撃破。残り時間は「お祈り投資家」の判定に使うので、止める前に控える。
   state.lastRemainingMs = remainingMs();
