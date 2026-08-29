@@ -4860,6 +4860,28 @@ function createTitleEquipButton(item, kind, owned, selectedId) {
   return btn;
 }
 
+/**
+ * 一覧・選択肢で「4人との勝負」の欄に混ぜる、キャラ別以外の称号。
+ * 4人まとめての条件なので、この欄にあるほうが探しやすい。
+ *   n01 … 株クラRPGメンバー（4人全員に勝利）
+ *   c08 … 👑 四天王箱推し（4人全員で時間切れ）
+ */
+const CHARA_GROUP_EXTRA = ["n01", "c08"];
+
+/** 「4人との勝負」の欄に入れる称号（キャラ別＋上の追加分）。 */
+function charaGroupBaseTitles() {
+  return charaBaseTitles().concat(
+    TITLE_COND.filter(t => CHARA_GROUP_EXTRA.indexOf(t.id) !== -1));
+}
+function charaGroupCrownTitles() {
+  return charaCrownTitles().concat(
+    TITLE_CROWN.filter(t => CHARA_GROUP_EXTRA.indexOf(t.id) !== -1));
+}
+
+/** それぞれの欄から、上へ移したぶんを除いた残り。 */
+function condOnlyTitles()  { return TITLE_COND.filter(t => CHARA_GROUP_EXTRA.indexOf(t.id) === -1); }
+function crownOnlyTitles() { return TITLE_CROWN.filter(t => CHARA_GROUP_EXTRA.indexOf(t.id) === -1); }
+
 /** 小見出し付きで1グループぶん並べる。空のグループは見出しごと出さない。 */
 function appendTitleGroup(list, label, items, kind, owned, selectedId) {
   if (!items || items.length === 0) return;
@@ -4894,17 +4916,17 @@ function renderTitlesScreen() {
   baseList.textContent = "";
 
   crownList.appendChild(createTitleEquipButton(null, "crown", owned, equipped.crownId));
-  TITLE_CROWN.forEach(t => crownList.appendChild(
+  crownOnlyTitles().forEach(t => crownList.appendChild(
     createTitleEquipButton(t, "crown", owned, equipped.crownId)
   ));
-  appendTitleGroup(crownList, "── 4人との勝負 ──", charaCrownTitles(), "crown", owned, equipped.crownId);
+  appendTitleGroup(crownList, "── 4人との勝負 ──", charaGroupCrownTitles(), "crown", owned, equipped.crownId);
 
   baseList.appendChild(titleGroupLabel("── タイム ──"));
   TITLE_BASE.forEach(t => baseList.appendChild(
     createTitleEquipButton(t, "base", owned, equipped.baseId)
   ));
-  appendTitleGroup(baseList, "── 条件 ──",       TITLE_COND,        "base", owned, equipped.baseId);
-  appendTitleGroup(baseList, "── 4人との勝負 ──", charaBaseTitles(), "base", owned, equipped.baseId);
+  appendTitleGroup(baseList, "── 条件 ──",       condOnlyTitles(),        "base", owned, equipped.baseId);
+  appendTitleGroup(baseList, "── 4人との勝負 ──", charaGroupBaseTitles(),  "base", owned, equipped.baseId);
 }
 
 /** 現在選択中の称号を文字列にする。 */
@@ -4947,16 +4969,16 @@ function openTitlePicker(forShare) {
 
   baseSelect.textContent = "";
   appendTitleOptions(baseSelect, TITLE_BASE, owned, "");
-  appendTitleOptions(baseSelect, TITLE_COND, owned, "条件");
-  appendTitleOptions(baseSelect, charaBaseTitles(), owned, "4人との勝負");
+  appendTitleOptions(baseSelect, condOnlyTitles(), owned, "条件");
+  appendTitleOptions(baseSelect, charaGroupBaseTitles(), owned, "4人との勝負");
 
   crownSelect.textContent = "";
   const none = document.createElement("option");
   none.value = "";
   none.textContent = "冠なし";
   crownSelect.appendChild(none);
-  appendTitleOptions(crownSelect, TITLE_CROWN, owned, "");
-  appendTitleOptions(crownSelect, charaCrownTitles(), owned, "4人との勝負");
+  appendTitleOptions(crownSelect, crownOnlyTitles(), owned, "");
+  appendTitleOptions(crownSelect, charaGroupCrownTitles(), owned, "4人との勝負");
 
   // 現在表示している称号を初期選択にする。
   if (state.clearTitleBaseId && owned.indexOf(state.clearTitleBaseId) !== -1) {
