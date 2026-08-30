@@ -1431,28 +1431,46 @@
     overflow: hidden;
   }
 
-  #titles-inner {
+  /* 背景イラスト。読み込めなければ JS が隠して下地の色に戻す。 */
+  #titles-bg {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    padding: 24px 34px 22px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
+    object-fit: cover;
   }
 
-  #titles-head {
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", serif;
-    font-size: 30px;
-    letter-spacing: 0.12em;
-    color: var(--accent);
+  /* 見出しも凡例も絵の中に描かれているので、濃く落とさず色味だけ馴染ませる。 */
+  #titles-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 24, 18, 0.14);
+    pointer-events: none;
+  }
+
+  /* 枠・凡例・見出しは背景イラストに描かれているので、
+     中身はその上へ実寸で重ねる。数値は shougo_bg.jpeg（1536x1024）の
+     枠を実測し、ステージ 956x636 へ cover 換算したもの。 */
+  #titles-inner {
+    position: relative;            /* 背景より前に出す */
+    z-index: 1;
+    width: 100%;
+    height: 100%;
   }
 
   #titles-current-box {
-    width: 650px;
-    padding: 11px 18px;
+    position: absolute;
+    left: 197px;
+    top: 71px;
+    width: 560px;
+    height: 71px;
+    padding: 6px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    background: var(--panel);
+    background: rgba(42, 26, 18, 0.90);   /* 背景イラストの上でも文字が浮かない濃さ */
     border: 1px solid var(--border);
     border-radius: 6px;
   }
@@ -1472,12 +1490,14 @@
   }
 
   #titles-columns {
-    width: 100%;
-    flex: 1;
-    min-height: 0;
+    position: absolute;
+    left: 105px;
+    top: 151px;
+    width: 726px;
+    height: 337px;
     display: grid;
-    grid-template-columns: 1fr 1.35fr;
-    gap: 22px;
+    grid-template-columns: 327px 385px;   /* 絵の左枠・右枠と同じ幅 */
+    gap: 14px;
   }
 
   .titles-group {
@@ -1485,7 +1505,7 @@
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    background: rgba(42, 26, 18, 0.62);
+    background: rgba(30, 22, 16, 0.88);   /* 背景イラストの上に一覧を置くので濃いめにする */
     border: 1px solid var(--border);
     border-radius: 6px;
     overflow: hidden;              /* リストが枠の外へはみ出さない */
@@ -1578,22 +1598,15 @@
     color: var(--accent);
   }
 
-  #titles-foot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 7px;
-  }
-
-  #titles-note {
-    font-size: 12px;
-    color: var(--text);
-    opacity: 0.62;
-  }
-
+  /* 絵に描かれたボタンの上にぴったり重ねる。 */
   #btn-titles-back {
-    padding: 10px 28px;
-    font-size: 16px;
+    position: absolute;
+    left: 372px;
+    top: 540px;
+    width: 207px;
+    height: 52px;
+    padding: 0;
+    font-size: 17px;
   }
 
   /* ---------- クリア画面 ---------- */
@@ -1947,9 +1960,9 @@
 
   <!-- 称号一覧・装備画面。タイトル画面の「称号 N/16」から開く。 -->
   <section class="screen" id="screen-titles">
+    <img id="titles-bg" src="assets/shougo_bg.jpeg" alt="">
+    <div id="titles-scrim"></div>
     <div id="titles-inner">
-      <div id="titles-head">称号</div>
-
       <div id="titles-current-box">
         <div id="titles-current-label">現在の称号</div>
         <div id="titles-current">まだ称号を獲得していません</div>
@@ -1967,10 +1980,7 @@
         </div>
       </div>
 
-      <div id="titles-foot">
-        <div id="titles-note">● 装備中　✓ 獲得済み　🔒 未獲得</div>
-        <button class="btn" id="btn-titles-back" type="button">タイトルへ戻る</button>
-      </div>
+      <button class="btn" id="btn-titles-back" type="button">タイトルへ戻る</button>
     </div>
   </section>
 
@@ -3684,6 +3694,16 @@ function applyTitleBackground() {
   }
   bg.src = want;
 }
+
+/** 称号一覧の背景。読み込めなくても止まらない。画像とベールを消して下地の色で出す。 */
+(function setupTitlesBg() {
+  const bg    = document.getElementById("titles-bg");
+  const scrim = document.getElementById("titles-scrim");
+  bg.addEventListener("error", () => {
+    bg.hidden = true;
+    scrim.hidden = true;
+  });
+})();
 
 (function setupTitleBg() {
   const bg    = document.getElementById("title-bg");
