@@ -2349,6 +2349,9 @@ const STORY_BLACKIN_MS  = 1000;
 /** 締めの暗転（bg も text も無い blackout の行）。余韻を残したいので長めにする */
 const STORY_BLACKEND_MS = 1300;
 
+/** 暗転中に背景の読み込みを待つ上限。これを超えたら待たずに明ける */
+const STORY_BG_WAIT_MS = 2500;
+
 /** クリア画面を出してから、トゥルーエンドの導入を出すまでの待ち */
 const TRUE_END_GATE_MS = 1000;
 
@@ -3502,6 +3505,8 @@ const story = {
   onFinish: null,  // 最後まで流れた（または途中でやめた）ときの行き先
   canQuit: false,  // Esc で途中終了できるか（ギャラリーからの閲覧のときだけ true）
   blackTimer: null, // 暗転の途中経過。閲覧を途中でやめたときに止める
+  token: 0,         // 台本の通し番号。読み込み待ちのあいだに台本が変わったら捨てる
+  bgPrefetch: [],   // 先読みした背景。参照を残さないとキャッシュから外れることがある
 };
 
 /** プロローグを流すべきか。空配列・視聴済み・保存が使えない場合は流さない。 */
@@ -3525,6 +3530,41 @@ function shouldOfferTrueEnd(gained) {
   if (!REWARD_FINAL) return false;
   if (loadTrueEndSeen()) return false;
   return !!(gained && gained.isNew && gained.reward && gained.reward.id === REWARD_FINAL.id);
+}
+
+/**
+ * 台本に出てくる背景をまとめて先に取りに行く。
+ * 切り替えの瞬間にまだ読めていないと、前の絵がそのまま残って見えるため。
+ */
+function prefetchSceneBgs(scenes) {
+  story.bgPrefetch = [];
+  scenes.forEach(sc => {
+    const src = sc && sc.bg;
+    if (typeof src !== "string" || !src) return;
+    const img = new Image();
+    img.decoding = "async";
+    img.src = src;
+    story.bgPrefetch.push(img);       // 参照を残す。捨てるとキャッシュから外れることがある
+  });
+}
+
+/**
+ * src が表示できる状態になったら done を呼ぶ。
+ * 読み込めないときも遅すぎるときも、必ず1回だけ呼んで先へ進める。
+ */
+function whenBgReady(src, done) {
+  if (typeof src !== "string" || !src) { done(); return; }
+
+  const probe = new Image();
+  let called = false;
+  const finish = () => { if (called) return; called = true; done(); };
+
+  probe.onload  = finish;
+  probe.onerror = finish;             // 読めなくても待たない（表示側の error で下地に落ちる）
+  probe.src = src;
+
+  if (probe.complete) { finish(); return; }   // 先読み済みなら待たずに進む
+  setTimeout(finish, STORY_BG_WAIT_MS);
 }
 
 /** 背景を差し替える。fade なら STORY_FADE_MS かけて現れる。 */
@@ -3616,17 +3656,26 @@ function runBlackout(scene) {
   guide.classList.add("is-quiet");
   fadeLayer(black, 1, STORY_BLACKOUT_MS);
 
+  const hasBg = Object.prototype.hasOwnProperty.call(scene, "bg");
+  const token = story.token;
+
   clearTimeout(story.blackTimer);
   story.blackTimer = setTimeout(() => {
     // 見えていないあいだに差し替える。ここでのフェードは暗転が兼ねるので使わない。
-    if (Object.prototype.hasOwnProperty.call(scene, "bg")) setStoryBg(scene.bg, false);
+    if (hasBg) setStoryBg(scene.bg, false);
     showSceneText(scene);
 
-    guide.classList.remove("is-quiet");
-    fadeLayer(black, 0, STORY_BLACKIN_MS);
+    // 新しい絵が描けるようになってから明ける。待たずに明けると、
+    // 差し替えが間に合わず前の絵が一瞬見えてしまう。
+    whenBgReady(hasBg ? scene.bg : null, () => {
+      if (token !== story.token) return;       // 待つあいだに台本が変わっていたら捨てる
 
-    story.busy = false;
-    story.lockedUntil = performance.now() + STORY_BLACKIN_MS;   // 明けきるまでは読ませる
+      guide.classList.remove("is-quiet");
+      fadeLayer(black, 0, STORY_BLACKIN_MS);
+
+      story.busy = false;
+      story.lockedUntil = performance.now() + STORY_BLACKIN_MS;   // 明けきるまでは読ませる
+    });
   }, STORY_BLACKOUT_MS);
 }
 
@@ -3664,6 +3713,7 @@ function advanceStory() {
 function finishStory() {
   clearTimeout(story.blackTimer);        // 暗転の途中でやめても後から発火させない
   story.blackTimer = null;
+  story.token++;                         // 読み込み待ちが後から明けてこないようにする
   resetStoryLayers();
   story.busy = false;
 
@@ -3709,8 +3759,10 @@ function playScenes(scenes, onFinish, options) {
 
   clearTimeout(story.blackTimer);
   story.blackTimer = null;
+  story.token++;                                             // 前の台本の読み込み待ちを無効にする
   resetStoryLayers();
   setStoryBg(null, false);                                   // 背景・案内を初期状態に戻す
+  prefetchSceneBgs(list);                                    // 切り替えで前の絵が残らないよう先読み
   const guide = document.getElementById("story-guide");
   guide.classList.remove("is-quiet");
   guide.textContent = story.canQuit
@@ -4390,6 +4442,18 @@ function formatTime(ms) {
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "." + String(cs).padStart(2, "0");
 }
 
+/**
+ * クリア画面の見出し。「コンプリート」は全種そろった、そのクリア1回だけ出す。
+ * 集合絵（REWARD_FINAL）は通常10枚を集めきったクリアで1度しか初入手にならないので、
+ * それを「そろえた瞬間」の目印にしている。2回目以降は「ゲームクリア」。
+ */
+function renderClearHead(gained) {
+  const justCompleted = !!(REWARD_FINAL && gained && gained.isNew
+    && gained.reward && gained.reward.id === REWARD_FINAL.id);
+  document.getElementById("clear-head").textContent =
+    justCompleted ? "✨ コンプリート ✨" : "✨ ゲームクリア ✨";
+}
+
 /** クリアのたびに TIPS から1語選んで出す。空配列ならブロックごと隠す。 */
 function renderTip() {
   const box = document.getElementById("clear-tip");
@@ -4449,6 +4513,7 @@ function showClear() {
   renderBest();
   renderTitleCount();
   renderRewardCount();
+  renderClearHead(gained);  // 全種そろえた、そのクリアだけ「コンプリート」
   showScreen("clear");
 
   maybeOfferTrueEnd(gained); // 集合絵を初めて取ったクリアなら、少し置いて導入を出す
