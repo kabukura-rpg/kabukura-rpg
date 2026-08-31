@@ -1294,6 +1294,39 @@
 
   /* ---------- 設定資料集（スライドビューア） ---------- */
 
+  /* トゥルーエンドの導入。閉じる手段は「続ける」だけなので、
+     背景クリックにも Esc にも反応させない。 */
+  #true-end-gate {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    padding: 0 40px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.85);
+    opacity: 0;
+    transition: opacity 0.8s ease-in;
+  }
+  #true-end-gate.is-shown { opacity: 1; }
+
+  #true-end-gate-text {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", serif;
+    font-size: 26px;
+    line-height: 1.7;
+    letter-spacing: 0.08em;
+    color: #FFF3DC;
+    text-shadow: 0 0 18px rgba(255, 226, 170, 0.45);
+  }
+
+  #btn-true-end-go {
+    padding: 12px 34px;
+    font-size: 17px;
+  }
+
   #artbook {
     position: absolute;
     inset: 0;
@@ -2202,6 +2235,13 @@
     </div>
   </div>
 
+
+  <!-- トゥルーエンドの導入。集合絵を初めて取ったクリアでだけ、クリア画面の上に出る -->
+  <div id="true-end-gate" hidden>
+    <div id="true-end-gate-text">すべての思い出の欠片が集まった——</div>
+    <button class="btn" id="btn-true-end-go" type="button">続ける</button>
+  </div>
+
 </div>
 
 <script>
@@ -2236,11 +2276,18 @@ const SE_VOLUME  = 1.2;   // 効果音の既定音量
  * condition には loadProgress() の結果がそのまま渡る。
  *   p.clearCount     … 累計クリア回数
  *   p.noTimeoutClear … 一度でも時間切れなしでクリアしたか
+ *   p.trueEndSeen    … トゥルーエンドを見たか
  *   p.unlockedTitles … 獲得済みの称号ID
  * 条件を増やしたいときは、このリストに項目を足すだけでよい（上ほど優先）。
  * 素材が無い項目は、下の項目の素材へ自動的に落ちる。
  */
 const TITLE_THEMES = [
+  {
+    id: "trueend",
+    bg:  "assets/title_bg_true_cleared_ending.jpeg",
+    bgm: { src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
+    condition: (p) => p.trueEndSeen === true,   // トゥルーエンドを見たら
+  },
   {
     id: "flawless",
     bg:  "assets/title_bg_flawless.jpeg",
@@ -2270,6 +2317,7 @@ const TITLE_THEMES = [
  *   fadeIn   … true なら背景を STORY_FADE_MS かけてゆっくり表示する。
  *   blackout … true なら一度暗転してから bg に切り替え、ゆっくり明るくする。
  *              暗転が背景の切り替えを隠すので、fadeIn とは併用しない。
+ *              bg も text も書かない行は「締めの暗転」で、黒くなったら次の画面へ進む。
  *   whiteout … true ならその行で白くフェードし、次の画面へ進む（本文は不要）。
  * text の \n は改行として表示される。
  * この配列を空にすると、ストーリー画面ごと飛ばしてスタート画面から始まる。
@@ -2297,6 +2345,12 @@ const STORY_WHITEOUT_MS = 900;
 /** 暗転（blackout: true の行）。黒くなるまでと、そこから明るくなるまでの時間 */
 const STORY_BLACKOUT_MS = 500;
 const STORY_BLACKIN_MS  = 1000;
+
+/** 締めの暗転（bg も text も無い blackout の行）。余韻を残したいので長めにする */
+const STORY_BLACKEND_MS = 1300;
+
+/** クリア画面を出してから、トゥルーエンドの導入を出すまでの待ち */
+const TRUE_END_GATE_MS = 1000;
 
 /** 行が出てから入力を受け付けないでいる時間。連打で読み飛ばすのを防ぐ。 */
 const STORY_INPUT_LOCK_MS = 350;
@@ -2345,6 +2399,59 @@ const EPILOGUE = [
     text: "さあ、夜も明けてきましたね。またタイピング勝負をしましょ♪" },
 
   { whiteout: true },
+];
+
+/**
+ * トゥルーエンド。ごほうびイラストを全種そろえた状態でクリアすると、
+ * クリア画面の手前で1回だけ流れる。書き方は EPILOGUE と同じ。
+ * 空配列にすると、そのままクリア画面へ進む。
+ */
+const TRUE_END = [
+  { bg: "assets/title_bg_cleared.jpeg", fadeIn: true, speaker: "",
+    text: "夕暮れが、辺りを茜色に染め——\n楽しい時間は、いつの間にか過ぎていました。" },
+  { speaker: "", text: "そのとき、胸の奥に、現実の記憶がよみがえりました。" },
+  { speaker: "", text: "——帰らなきゃ。" },
+  { speaker: "", text: "ここがどれほど楽しくても、自分には戻らなければならない場所がある。" },
+  { speaker: "あなた", text: "ごめんね。そろそろ帰らなきゃ" },
+  { speaker: "", text: "四人の笑い声が止まりました。" },
+
+  { bg: "assets/title_bg_true_cleared.jpeg", blackout: true, speaker: "女王",
+    text: "帰ってしまいますの……？" },
+  { speaker: "", text: "みっちゃんとにむしも、寂しそうな顔であなたを見上げています。" },
+  { speaker: "ねむぱん", text: "そっか" },
+  { speaker: "", text: "ねむぱんは寂しそうな顔をしながらも、あなたの手を振ります。" },
+  { speaker: "ねむぱん", text: "でも、きっとまた会えるよ" },
+  { speaker: "", text: "その瞬間。" },
+  { speaker: "", text: "あなたが集めた『思い出の欠片』が、一斉に光を放ちました。" },
+  { speaker: "あなた", text: "！！" },
+  { speaker: "", text: "すべての思い出がひとつの大きな光となり、あなたを包み込みます。" },
+  { speaker: "", text: "遠ざかっていく景色の中。" },
+  { speaker: "", text: "みんなは、最後まであなたに向かって手を振っていました。" },
+
+  { bg: "assets/bg_smartPhone.jpeg", blackout: true, speaker: "",
+    text: "目を開けると、見慣れた天井がありました。" },
+  { speaker: "", text: "枕元には、スマートフォン。\nどうやら、いつの間にか寝落ちしていたようです。" },
+  { speaker: "", text: "——夢だったのでしょうか。" },
+  { speaker: "", text: "時計を見たあなたは、余韻に浸っている場合ではないことに気づきました。" },
+  { speaker: "あなた", text: "……まずい" },
+  { speaker: "", text: "急いで身支度を整え、あなたは慌ただしく仕事に出かけました。" },
+
+  { bg: "assets/bg_station.jpeg", fadeIn: true, speaker: "",
+    text: "いつもの通勤電車。" },
+  { speaker: "", text: "吊り革につかまりながら、あなたはスマートフォンでXを眺めています。" },
+  { speaker: "", text: "そこに流れてきた一枚の画像を見て、あなたの指は止まりました。" },
+  { speaker: "", text: "『株クラRPGの新しいゲーム\n\u3000株クラTPG、まもなくリリース！』" },
+
+  { bg: "assets/endImage.jpeg", fadeIn: true, speaker: "",
+    text: "画面の中には、笑顔で手を振る四人の女の子がいました。" },
+  { speaker: "", text: "天然お嬢様の、小さな女王。" },
+  { speaker: "", text: "少し戸惑った表情をした、にむし。" },
+  { speaker: "", text: "優しく微笑んでいる、みっちゃん。" },
+  { speaker: "", text: "そして元気いっぱいに手を振る、ねむぱん。" },
+  { speaker: "", text: "その笑顔を見つめていると、不意にねむぱんの声が聞こえたような気がしました。" },
+  { speaker: "", text: "——きっと、また会えるよ。" },
+
+  { blackout: true },
 ];
 
 const AUDIO = {
@@ -3355,6 +3462,7 @@ const state = {
   finalTimers: [],
   glowTimer: null,
   heartTimers: [],     // ハートを割る演出のタイマー。画面をまたぐときに片付ける
+  trueEndTimer: null,  // トゥルーエンドの導入を出すまでのタイマー
   imeTimer: null,
   penaltyTimer: null,
   penaltyMs: 0,        // このステージで積んだ減点。経過時間そのものは増やさない
@@ -3408,6 +3516,17 @@ function shouldShowEpilogue() {
   return !loadEpilogueSeen();
 }
 
+/**
+ * トゥルーエンドの導入を出すべきか。
+ * 集合絵（REWARD_FINAL）を初めて取ったクリアで、かつ未視聴のときだけ。
+ */
+function shouldOfferTrueEnd(gained) {
+  if (!Array.isArray(TRUE_END) || TRUE_END.length === 0) return false;
+  if (!REWARD_FINAL) return false;
+  if (loadTrueEndSeen()) return false;
+  return !!(gained && gained.isNew && gained.reward && gained.reward.id === REWARD_FINAL.id);
+}
+
 /** 背景を差し替える。fade なら STORY_FADE_MS かけて現れる。 */
 function setStoryBg(src, fade) {
   const bg = document.getElementById("story-bg");
@@ -3446,7 +3565,14 @@ function renderStoryScene() {
   const scene = story.scenes[story.index];
   if (!scene) { finishStory(); return; }
 
-  if (scene.blackout === true) { runBlackout(scene); return; }   // 背景の差し替えも暗転側で行う
+  if (scene.blackout === true) {
+    // 背景も本文も無い行は「締めの暗転」。黒くなったところで次の画面へ渡す。
+    const closing = !Object.prototype.hasOwnProperty.call(scene, "bg")
+                 && typeof scene.text !== "string";
+    if (closing) runBlackoutEnd();
+    else         runBlackout(scene);   // 背景の差し替えも暗転側で行う
+    return;
+  }
 
   if (Object.prototype.hasOwnProperty.call(scene, "bg")) {
     setStoryBg(scene.bg, scene.fadeIn === true);
@@ -3502,6 +3628,18 @@ function runBlackout(scene) {
     story.busy = false;
     story.lockedUntil = performance.now() + STORY_BLACKIN_MS;   // 明けきるまでは読ませる
   }, STORY_BLACKOUT_MS);
+}
+
+/** 黒くフェードしてから次の画面へ渡す。ホワイトアウトの暗転版。 */
+function runBlackoutEnd() {
+  const black = document.getElementById("story-blackout");
+  story.busy = true;
+  document.getElementById("story-guide").classList.add("is-quiet");
+
+  fadeLayer(black, 1, STORY_BLACKEND_MS);
+
+  clearTimeout(story.blackTimer);
+  story.blackTimer = setTimeout(finishStory, STORY_BLACKEND_MS);
 }
 
 /** 白くフェードしてから次の画面へ渡す。 */
@@ -3601,6 +3739,45 @@ function playEpilogue() {
     showClear();
   });
 }
+
+/** クリア画面の導入から始まる本編。見終わったらクリア画面へ戻す。 */
+function playTrueEnd() {
+  playScenes(TRUE_END, () => {
+    saveTrueEndSeen(true);
+    applyTitleBackground();     // タイトルの背景がトゥルーエンド仕様に変わる
+    showScreen("clear");        // showClear() だと集計をやり直すので画面だけ戻す
+  });
+}
+
+/**
+ * トゥルーエンドの導入。クリア画面を1秒見せてから、覆いをフェードインさせる。
+ * コンプリートの表示を認識する間を作るための待ちなので、短くしすぎない。
+ */
+function maybeOfferTrueEnd(gained) {
+  clearTimeout(state.trueEndTimer);
+  if (!shouldOfferTrueEnd(gained)) return;
+  state.trueEndTimer = setTimeout(showTrueEndGate, TRUE_END_GATE_MS);
+}
+
+function showTrueEndGate() {
+  const gate = document.getElementById("true-end-gate");
+  gate.hidden = false;
+  void gate.offsetWidth;                    // 強制リフロー。非表示タブでも確実にフェードさせる
+  gate.classList.add("is-shown");
+  document.getElementById("btn-true-end-go").focus();
+}
+
+function hideTrueEndGate() {
+  clearTimeout(state.trueEndTimer);
+  const gate = document.getElementById("true-end-gate");
+  gate.classList.remove("is-shown");
+  gate.hidden = true;
+}
+
+document.getElementById("btn-true-end-go").addEventListener("click", () => {
+  hideTrueEndGate();
+  playTrueEnd();
+});
 
 /* ---------- タイトル画面 ---------- */
 
@@ -3849,6 +4026,7 @@ function restartFromTitle() {
 
   stopTimer();          // 戦闘中に押されてもタイマーは確実に止める
   stopAllSe();          // 鳴りかけの効果音をタイトルへ持ち越さない
+  hideTrueEndGate();    // 出る前に画面を離れたときの予約を捨てる
   clearTimeout(state.introTimer);
   clearTimeout(state.timeupTimer);
   clearTimeout(state.glowTimer);
@@ -3891,6 +4069,7 @@ function restartFromTitle() {
 
 function startGame() {
   stopTimer();
+  hideTrueEndGate();          // 出る前に画面を離れたときの予約を捨てる
   clearTimeout(state.introTimer);
   clearTimeout(state.timeupTimer);
   clearFinalTimers();
@@ -4179,6 +4358,7 @@ function advanceFromDefeat() {
   prefetchRewardImage(state.pendingReward);
 
   // 初クリアのときだけエピローグを挟む。2周目以降はそのままクリア画面へ。
+  // トゥルーエンドはクリア画面に出る導入から始まるので、ここでは分岐しない。
   if (shouldShowEpilogue()) playEpilogue();
   else showClear();
 }
@@ -4235,6 +4415,7 @@ function showClear() {
   stopBgm();
   stopAllSe();              // 先に止めてから
   playSe(AUDIO.se.clear);
+  hideTrueEndGate();        // 前回の導入が残っていたら消しておく
 
   document.getElementById("clear-time").textContent     = formatTime(state.totalMs);
   document.getElementById("clear-combo").textContent    = state.maxCombo;
@@ -4269,6 +4450,8 @@ function showClear() {
   renderTitleCount();
   renderRewardCount();
   showScreen("clear");
+
+  maybeOfferTrueEnd(gained); // 集合絵を初めて取ったクリアなら、少し置いて導入を出す
 }
 
 /** 人物紹介のカード。画像は profileImage → image → emoji の順に落ちる。 */
@@ -4839,6 +5022,7 @@ function scenarioEntries() {
   return [
     { id: "prologue", name: "プロローグ", scenes: STORY,    unlocked: true },
     { id: "epilogue", name: "エピローグ", scenes: EPILOGUE, unlocked: loadEpilogueSeen() },
+    { id: "trueend",  name: "トゥルーエンド", scenes: TRUE_END, unlocked: loadTrueEndSeen() },
   ];
 }
 
@@ -4867,7 +5051,7 @@ function createScenarioTile(sc) {
 
   const name = document.createElement("div");
   name.className = "gallery-name";
-  name.textContent = sc.name;
+  name.textContent = sc.unlocked ? sc.name : "？？？";   // 未到達は題名も伏せる
 
   item.append(thumb, name);
   return item;
@@ -5356,6 +5540,7 @@ function loadProgress() {
     selectedCrownTitle,
     clearCount:     (typeof b.clearCount === "number" && isFinite(b.clearCount) && b.clearCount > 0) ? Math.floor(b.clearCount) : 0,
     noTimeoutClear: b.noTimeoutClear === true,
+    trueEndSeen:    b.trueEndSeen === true,
   };
 }
 
@@ -5391,6 +5576,7 @@ function saveBest(earned, newRewardId) {
     soundEnabled:   audio.enabled,
     storySeen:      prev.storySeen === true,     // 作り直しで消えないよう引き継ぐ
     epilogueSeen:   prev.epilogueSeen === true,  // 同上
+    trueEndSeen:    prev.trueEndSeen === true,   // 同上
     totalKeystrokes: loadTotalKeystrokes(),      // 累計入力文字数も作り直しで消さない
   };
 
@@ -5595,6 +5781,21 @@ function loadStorySeen() {
 function loadEpilogueSeen() {
   const b = loadBest() || {};
   return b.epilogueSeen === true;
+}
+
+function loadTrueEndSeen() {
+  const b = loadBest() || {};
+  return b.trueEndSeen === true;
+}
+
+function saveTrueEndSeen(seen) {
+  const prev = loadBest() || {};
+  prev.trueEndSeen = !!seen;
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(prev));
+  } catch (e) {
+    /* 保存できない環境では毎回流れるが、進行は止めない */
+  }
 }
 
 function saveEpilogueSeen(seen) {
@@ -5964,6 +6165,14 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (currentScreen === "clear") {
+    const gate = document.getElementById("true-end-gate");
+    if (!gate.hidden) {
+      // 閉じる手段は「続ける」だけ。Esc を含め、ほかのキーは一切通さない。
+      if (e.target && e.target.closest && e.target.closest("#true-end-gate")) return;
+      e.preventDefault();
+      return;
+    }
+
     const picker = document.getElementById("title-picker");
     if (!picker.hidden) {
       // モーダル内の select / button のキー操作はそのまま使えるようにする。
