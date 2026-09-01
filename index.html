@@ -3106,7 +3106,8 @@ function normalizeBgm(entry) {
   // loopEnd が loopStart 以下なら無効（曲の末尾までループする）
   const loopEnd = (rawEnd > loopStart) ? rawEnd : 0;
 
-  return { src: base.src, loopStart, loopEnd, volume: base.volume };
+  // loop は既定 true。音のON/OFFで鳴らし直すときも、この値ごと持ち回る。
+  return { src: base.src, loopStart, loopEnd, volume: base.volume, loop: obj.loop !== false };
 }
 
 function canPlay(src) {
@@ -3322,10 +3323,19 @@ function startBgmNode(buffer, want) {
   const gain = ctx.createGain();
 
   node.buffer = buffer;
-  node.loop = true;
-  node.loopStart = (want.loopStart > 0 && want.loopStart < buffer.duration) ? want.loopStart : 0;
-  node.loopEnd   = (want.loopEnd > node.loopStart && want.loopEnd <= buffer.duration)
-    ? want.loopEnd : buffer.duration;
+  node.loop = (want.loop !== false);        // 既定はループ。鑑賞用（サウンドトラック）だけ1回で終わる
+  if (node.loop) {
+    node.loopStart = (want.loopStart > 0 && want.loopStart < buffer.duration) ? want.loopStart : 0;
+    node.loopEnd   = (want.loopEnd > node.loopStart && want.loopEnd <= buffer.duration)
+      ? want.loopEnd : buffer.duration;
+  } else {
+    // 最後まで鳴ったら自分で片付ける。そうしないと「再生中」の表示が残る。
+    node.onended = () => {
+      if (audio.bgmNode !== node) return;   // すでに別の曲へ切り替わっているなら何もしない
+      stopBgm();
+      renderSoundtrackState();
+    };
+  }
 
   node.connect(gain).connect(ctx.destination);
 
@@ -3346,8 +3356,13 @@ function startBgmNode(buffer, want) {
 }
 
 /** BGM。同じ曲が鳴っていれば鳴らし直さない（ステージ内でぶつ切りにしない）。 */
-function playBgm(entry) {
+/**
+ * BGMを鳴らす。options.loop に false を渡すと、繰り返さず1回で終わる
+ * （サウンドトラックの試聴用。ゲーム中のBGMは既定のままループする）。
+ */
+function playBgm(entry, options) {
   const want = normalizeBgm(entry);
+  if (want && options && options.loop === false) want.loop = false;
   audio.bgmWant = want;
 
   if (!want || !canPlay(want.src)) {
@@ -4679,7 +4694,7 @@ function buildSoundtrack() {
     play.addEventListener("click", () => {
       if (!trackPlayable(track)) return;
       unlockAudio();                 // ここまで来れば解除済みだが、念のため
-      playBgm(track);
+      playBgm(track, { loop: false });   // 試聴なので繰り返さない
       openPlayer(track);             // 再生画面をかぶせる
       renderSoundtrackState();
       // 読み込みに失敗したときは「準備中」に落とす。結果が出るまで少し待つ。
@@ -4805,7 +4820,7 @@ document.getElementById("player-toggle").addEventListener("click", (e) => {
   if (!playerTrack || !trackPlayable(playerTrack)) return;
   unlockAudio();
   if (playerTrack.id === playingTrackId()) stopBgm();
-  else playBgm(playerTrack);
+  else playBgm(playerTrack, { loop: false });   // 試聴なので繰り返さない
   renderSoundtrackState();
   setTimeout(renderSoundtrackState, 900);
 });
