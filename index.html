@@ -2283,22 +2283,22 @@ const SE_VOLUME  = 1.2;   // 効果音の既定音量
  */
 const TITLE_THEMES = [
   {
-    id: "trueend",
-    bg:  "assets/title_bg_true_cleared_ending.jpeg",
-    bgm: { src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
+    id: "true_end",
+    bg:  "assets/title_bg_true_cleared.jpeg",
+    bgm: { src: "assets/bgm_title_true_cleared_ending.mp3", loopStart: 0, volume: 0.4 },
     condition: (p) => p.trueEndSeen === true,   // トゥルーエンドを見たら
+  },
+  {
+    id: "fifth",
+    bg:  "assets/bg_5th.jpeg",
+    bgm: { src: "assets/bgm_title_5th.mp3", loopStart: 0, volume: 0.4 },
+    condition: (p) => p.clearCount >= 5,   // 5回クリアしたら
   },
   {
     id: "flawless",
     bg:  "assets/title_bg_flawless.jpeg",
     bgm: { src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4 },
     condition: (p) => p.clearCount >= 3,   // 2周目をクリアしたら
-  },
-  {
-    id: "cleared",
-    bg:  "assets/title_bg_cleared.jpeg",
-    bgm: { src: "assets/bgm_title_cleared.mp3", loopStart: 0, volume: 0.4 },
-    condition: (p) => p.clearCount >= 1,   // 1周目をクリアしたら
   },
   {
     id: "normal",
@@ -2500,6 +2500,7 @@ const AUDIO = {
  *
  * unlock は解禁条件。loadProgress() の結果が渡る。
  *   p.clearCount     … 累計クリア回数
+ *   p.trueEndSeen    … トゥルーエンドを見たか
  *   p.unlockedTitles … 獲得済みの称号ID（"w_micchan" などでキャラ撃破が分かる）
  * 省略すると最初から聞ける。満たすまでは曲名が「？？？」になり再生もできない。
  */
@@ -2509,14 +2510,18 @@ const SOUNDTRACK = [
     unlock: (p) => p.clearCount >= 1 },
   { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg",
     unlock: (p) => p.clearCount >= 2 },
+  { id: "title_5th",      name: "FIFTH DAWN　五度目の夜明け",         author: "", src: "assets/bgm_title_5th.mp3", loopStart: 0, volume: 0.4, cover: null,
+    unlock: (p) => p.clearCount >= 5 },
+  { id: "title_true",     name: "FAREWELL, AND AGAIN　またね、いつか", author: "", src: "assets/bgm_title_true_cleared_ending.mp3", loopStart: 0, volume: 0.4, cover: null,
+    unlock: (p) => p.trueEndSeen === true },
 
-  { id: "micchan",  name: "Blooming Keystorm",   author: "", src: "assets/micchan.mp3",     cover: "assets/cover_micchan.jpeg",
+  { id: "micchan",  name: "Blooming Keystorm",   author: "", src: "assets/sound/micchan.mp3",     cover: "assets/cover_micchan.jpeg",
     unlock: (p) => p.unlockedTitles.indexOf("w_micchan") !== -1 },
-  { id: "nimushi",  name: "Curse Key Blitz",     author: "", src: "assets/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg",
+  { id: "nimushi",  name: "Curse Key Blitz",     author: "", src: "assets/sound/nimushi.mp3",     cover: "assets/cover_nimushi.jpeg",
     unlock: (p) => p.unlockedTitles.indexOf("w_nimushi") !== -1 },
-  { id: "nempan",   name: "PAWPRINT PANIC!",     author: "", src: "assets/nempan_test.mp3", cover: "assets/cover_nempan.jpeg",
+  { id: "nempan",   name: "PAWPRINT PANIC!",     author: "", src: "assets/sound/nempan.mp3", cover: "assets/cover_nempan.jpeg",
     unlock: (p) => p.unlockedTitles.indexOf("w_nempan") !== -1 },
-  { id: "ponkotsu", name: "Kingdom of Eurobeat", author: "", src: "assets/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg",
+  { id: "ponkotsu", name: "Kingdom of Eurobeat", author: "", src: "assets/sound/ponkotsu.mp3",    cover: "assets/cover_ponkotsu.jpeg",
     unlock: (p) => p.unlockedTitles.indexOf("w_ponkotsu") !== -1 },
 ];
 
