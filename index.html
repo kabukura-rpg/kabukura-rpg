@@ -570,6 +570,39 @@
     50%      { opacity: 0.25; }
   }
 
+  /* スクロールバー。既定のままだと暗い背景に紛れて位置が分からないので、
+     つまみを明るいグレーにする。幅は既定と同じ 15px のまま
+     （変えると中身の幅が動いてレイアウトがずれるため）。 */
+  #screen-clear::-webkit-scrollbar,
+  #screen-profile::-webkit-scrollbar,
+  #gallery-scroll::-webkit-scrollbar,
+  #soundtrack-scroll::-webkit-scrollbar {
+    width: 15px;
+  }
+  #screen-clear::-webkit-scrollbar-track,
+  #screen-profile::-webkit-scrollbar-track,
+  #gallery-scroll::-webkit-scrollbar-track,
+  #soundtrack-scroll::-webkit-scrollbar-track {
+    background: rgba(20, 15, 11, 0.55);
+  }
+  #screen-clear::-webkit-scrollbar-thumb,
+  #screen-profile::-webkit-scrollbar-thumb,
+  #gallery-scroll::-webkit-scrollbar-thumb,
+  #soundtrack-scroll::-webkit-scrollbar-thumb {
+    background: rgba(206, 197, 184, 0.62);
+    /* 透明の枠でつまみを細く見せる。枠のぶんまで塗らないよう padding-box にする。 */
+    border: 4px solid transparent;
+    background-clip: padding-box;
+    border-radius: 999px;
+  }
+  #screen-clear::-webkit-scrollbar-thumb:hover,
+  #screen-profile::-webkit-scrollbar-thumb:hover,
+  #gallery-scroll::-webkit-scrollbar-thumb:hover,
+  #soundtrack-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(240, 232, 216, 0.9);
+    background-clip: padding-box;
+  }
+
   /* ---------- 人物紹介 ---------- */
 
   #screen-profile { overflow-y: auto; }
@@ -1565,9 +1598,9 @@
 
   /* スクロールバーはゲーム画面の配色に馴染ませる。必要な列にだけ表示される。 */
   .titles-list::-webkit-scrollbar { width: 7px; }
-  .titles-list::-webkit-scrollbar-track { background: rgba(30, 24, 18, 0.45); }
+  .titles-list::-webkit-scrollbar-track { background: rgba(20, 15, 11, 0.55); }
   .titles-list::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: rgba(206, 197, 184, 0.62);
     border-radius: 4px;
   }
   .titles-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
