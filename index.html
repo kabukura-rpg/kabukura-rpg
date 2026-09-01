@@ -2538,14 +2538,14 @@ const AUDIO = {
  * 省略すると最初から聞ける。満たすまでは曲名が「？？？」になり再生もできない。
  */
 const SOUNDTRACK = [
-  { id: "title",          name: "MIDNIGHT ENCOUNTER　真夜中の邂逅",   author: "ねむぱん", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
-  { id: "title_cleared",  name: "DAYBREAK TOGETHER　夜明けを共に",    author: "ねむぱん", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg",
+  { id: "title",          name: "MIDNIGHT ENCOUNTER　真夜中の邂逅",   author: "", src: "assets/bgm_title.mp3",          loopStart: 0, volume: 0.4, cover: "assets/cover_title.jpeg" },
+  { id: "title_cleared",  name: "DAYBREAK TOGETHER　夜明けを共に",    author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg",
     unlock: (p) => p.clearCount >= 1 },
-  { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "ねむぱん", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg",
+  { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg",
     unlock: (p) => p.clearCount >= 2 },
-  { id: "title_5th",      name: "OUR STORY GOES ON　私たちの物語は続いていく", author: "ねむぱん", src: "assets/bgm_title_5th.mp3", loopStart: 0, volume: 0.4, cover: "assets/bgm_title_5th.jpeg",
+  { id: "title_5th",      name: "OUR STORY GOES ON　私たちの物語は続いていく", author: "", src: "assets/bgm_title_5th.mp3", loopStart: 0, volume: 0.4, cover: "assets/bgm_title_5th.jpeg",
     unlock: (p) => p.clearCount >= 5 },
-  { id: "title_true",     name: "SAME SKY, SOMEDAY　いつか、同じ空の下で", author: "ねむぱん", src: "assets/bgm_title_true_cleared_ending.mp3", loopStart: 0, volume: 0.4, cover:  "assets/bgm_title_true_cleared_ending.jpeg",
+  { id: "title_true",     name: "SAME SKY, SOMEDAY　いつか、同じ空の下で", author: "", src: "assets/bgm_title_true_cleared_ending.mp3", loopStart: 0, volume: 0.4, cover:  "assets/bgm_title_true_cleared_ending.jpeg",
     unlock: (p) => p.trueEndSeen === true },
 
   { id: "micchan",  name: "Blooming Keystorm",   author: "", src: "assets/sound/micchan.mp3",     cover: "assets/cover_micchan.jpeg",
