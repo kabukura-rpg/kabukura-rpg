@@ -1382,6 +1382,40 @@
     font-size: 17px;
   }
 
+  /* エピローグの手がかり。トゥルーエンドの導入と違い、どこを押しても閉じられる。 */
+  #epilogue-hint {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    padding: 0 40px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.85);
+    opacity: 0;
+    transition: opacity 0.8s ease-in;
+    cursor: pointer;             /* どこを押しても閉じる */
+  }
+  #epilogue-hint.is-shown { opacity: 1; }
+
+  #epilogue-hint-text {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", serif;
+    font-size: 26px;
+    line-height: 1.8;
+    letter-spacing: 0.08em;
+    color: #FFF3DC;
+    white-space: pre-line;       /* 台本と同じで、改行をそのまま出す */
+    text-shadow: 0 0 18px rgba(255, 226, 170, 0.45);
+  }
+
+  #btn-epilogue-hint {
+    padding: 12px 34px;
+    font-size: 17px;
+  }
+
   #artbook {
     position: absolute;
     inset: 0;
@@ -2302,6 +2336,13 @@
     <button class="btn" id="btn-true-end-go" type="button">続ける</button>
   </div>
 
+  <!-- エピローグを見終わったクリアでだけ出る、トゥルーエンドへの手がかり -->
+  <div id="epilogue-hint" hidden>
+    <div id="epilogue-hint-text">すべての思い出が集まったとき、
+何かが起こるかもしれない……</div>
+    <button class="btn" id="btn-epilogue-hint" type="button">閉じる</button>
+  </div>
+
 </div>
 
 <script>
@@ -2420,6 +2461,9 @@ const STORY_BG_WAIT_MS = 2500;
 
 /** クリア画面を出してから、トゥルーエンドの導入を出すまでの待ち */
 const TRUE_END_GATE_MS = 1000;
+
+/** エピローグを見終わったクリアで、手がかりを出すまでの待ち */
+const EPILOGUE_HINT_MS = 1500;
 
 /** 行が出てから入力を受け付けないでいる時間。連打で読み飛ばすのを防ぐ。 */
 const STORY_INPUT_LOCK_MS = 350;
@@ -3565,6 +3609,8 @@ const state = {
   glowTimer: null,
   heartTimers: [],     // ハートを割る演出のタイマー。画面をまたぐときに片付ける
   trueEndTimer: null,  // トゥルーエンドの導入を出すまでのタイマー
+  hintTimer: null,     // エピローグの手がかりを出すまでのタイマー
+  hintPending: false,  // 直前にエピローグを見たか。クリア画面で1回だけ手がかりを出す
   imeTimer: null,
   penaltyTimer: null,
   penaltyMs: 0,        // このステージで積んだ減点。経過時間そのものは増やさない
@@ -3887,6 +3933,7 @@ function bootFlow() {
 function playEpilogue() {
   playScenes(EPILOGUE, () => {
     saveEpilogueSeen(true);
+    state.hintPending = true;   // このあとのクリア画面で手がかりを1回だけ出す
     showClear();
   });
 }
@@ -3929,6 +3976,35 @@ document.getElementById("btn-true-end-go").addEventListener("click", () => {
   hideTrueEndGate();
   playTrueEnd();
 });
+
+/**
+ * エピローグを見終わったクリアでだけ、少し置いてから手がかりを出す。
+ * リザルトを読む間を作りたいので即座には出さない。
+ */
+function maybeShowEpilogueHint() {
+  clearTimeout(state.hintTimer);
+  if (!state.hintPending) return;
+  state.hintPending = false;                       // 出すのはこの1回だけ
+  state.hintTimer = setTimeout(showEpilogueHint, EPILOGUE_HINT_MS);
+}
+
+function showEpilogueHint() {
+  const box = document.getElementById("epilogue-hint");
+  box.hidden = false;
+  void box.offsetWidth;                            // 強制リフロー。非表示タブでも確実にフェードさせる
+  box.classList.add("is-shown");
+  document.getElementById("btn-epilogue-hint").focus();
+}
+
+function hideEpilogueHint() {
+  clearTimeout(state.hintTimer);
+  const box = document.getElementById("epilogue-hint");
+  box.classList.remove("is-shown");
+  box.hidden = true;
+}
+
+// どこを押しても閉じる（ボタンも同じ扱い）
+document.getElementById("epilogue-hint").addEventListener("click", hideEpilogueHint);
 
 /* ---------- タイトル画面 ---------- */
 
@@ -4178,6 +4254,7 @@ function restartFromTitle() {
   stopTimer();          // 戦闘中に押されてもタイマーは確実に止める
   stopAllSe();          // 鳴りかけの効果音をタイトルへ持ち越さない
   hideTrueEndGate();    // 出る前に画面を離れたときの予約を捨てる
+  hideEpilogueHint();
   clearTimeout(state.introTimer);
   clearTimeout(state.timeupTimer);
   clearTimeout(state.glowTimer);
@@ -4225,6 +4302,7 @@ function restartFromTitle() {
 function startGame() {
   stopTimer();
   hideTrueEndGate();          // 出る前に画面を離れたときの予約を捨てる
+  hideEpilogueHint();
   clearTimeout(state.introTimer);
   clearTimeout(state.timeupTimer);
   clearFinalTimers();
@@ -4601,6 +4679,7 @@ function showClear() {
   stopAllSe();              // 先に止めてから
   playSe(AUDIO.se.clear);
   hideTrueEndGate();        // 前回の導入が残っていたら消しておく
+  hideEpilogueHint();       // 手がかりも同様
 
   document.getElementById("clear-time").textContent     = formatTime(state.totalMs);
   document.getElementById("clear-combo").textContent    = state.maxCombo;
@@ -4637,7 +4716,8 @@ function showClear() {
   renderClearHead(gained);  // 全種そろえた、そのクリアだけ「コンプリート」
   showScreen("clear");
 
-  maybeOfferTrueEnd(gained); // 集合絵を初めて取ったクリアなら、少し置いて導入を出す
+  maybeOfferTrueEnd(gained);   // 集合絵を初めて取ったクリアなら、少し置いて導入を出す
+  maybeShowEpilogueHint();     // エピローグ直後のクリアなら、少し置いて手がかりを出す
 }
 
 /** 人物紹介のカード。画像は profileImage → image → emoji の順に落ちる。 */
@@ -6376,6 +6456,13 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (currentScreen === "clear") {
+    const hint = document.getElementById("epilogue-hint");
+    if (!hint.hidden) {
+      e.preventDefault();
+      hideEpilogueHint();       // Enter でも Esc でも、押せば閉じる
+      return;
+    }
+
     const gate = document.getElementById("true-end-gate");
     if (!gate.hidden) {
       // 閉じる手段は「続ける」だけ。Esc を含め、ほかのキーは一切通さない。
