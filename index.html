@@ -1783,6 +1783,11 @@
     color: var(--accent);
     letter-spacing: 0.06em;
   }
+  /* テーマ変化の知らせだけは文が長いので、幅に収まる大きさにする */
+  #clear-head.notice {
+    font-size: 26px;
+    letter-spacing: 0.04em;
+  }
 
   #clear-title-row {
     display: flex;
@@ -3959,8 +3964,8 @@ document.title = TITLE;
 const titleBgBroken = {};
 
 /** 条件に一致するテーマの位置。どれにも当てはまらなければ最後尾扱い。 */
-function matchedThemeIndex() {
-  const progress = loadProgress();
+function matchedThemeIndex(progress) {
+  progress = progress || loadProgress();   // 省略時はいまの進行状況
   for (let i = 0; i < TITLE_THEMES.length; i++) {
     const cond = TITLE_THEMES[i].condition;
     let hit = false;
@@ -4546,10 +4551,28 @@ function formatTime(ms) {
  * それを「そろえた瞬間」の目印にしている。2回目以降は「ゲームクリア」。
  */
 function renderClearHead(gained) {
+  const prog = loadProgress();
   const justCompleted = !!(REWARD_FINAL && gained && gained.isNew
     && gained.reward && gained.reward.id === REWARD_FINAL.id);
-  document.getElementById("clear-head").textContent =
+  const themeChanged = themeChangedByThisClear(prog);
+
+  const head = document.getElementById("clear-head");
+  head.textContent =
+    themeChanged  ? "スタート画面に変化が起きたようだ……？" :
     justCompleted ? "✨ コンプリート ✨" : "✨ ゲームクリア ✨";
+  head.classList.toggle("notice", themeChanged);   // 長い文なので少し小さく出す
+}
+
+/**
+ * 今回のクリアでタイトル画面のテーマが変わったか。
+ * 1回前のクリア回数で TITLE_THEMES を引き直して、選ばれる段が動いたかどうかを見る。
+ * 条件式をそのまま使うので、閾値を変えてもここは直さなくてよい。
+ */
+function themeChangedByThisClear(prog) {
+  if (!prog || prog.clearCount <= 0) return false;
+
+  const before = Object.assign({}, prog, { clearCount: prog.clearCount - 1 });
+  return matchedThemeIndex(before) !== matchedThemeIndex(prog);
 }
 
 /** クリアのたびに TIPS から1語選んで出す。空配列ならブロックごと隠す。 */
