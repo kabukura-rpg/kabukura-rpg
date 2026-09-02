@@ -2542,9 +2542,9 @@ const SOUNDTRACK = [
   { id: "title_cleared",  name: "DAYBREAK TOGETHER　夜明けを共に",    author: "", src: "assets/bgm_title_cleared.mp3",  loopStart: 0, volume: 0.4, cover: "assets/cover_title_cleared.jpeg",
     unlock: (p) => p.clearCount >= 1 },
   { id: "title_flawless", name: "BEYOND DAYBREAK　夜明けの、その先へ", author: "", src: "assets/bgm_title_flawless.mp3", loopStart: 0, volume: 0.4, cover: "assets/cover_title_flawless.jpeg",
-    unlock: (p) => p.clearCount >= 2 },
+    unlock: (p) => p.clearCount >= 3 },   // flawless テーマと同じ回数
   { id: "title_5th",      name: "OUR STORY GOES ON　私たちの物語は続いていく", author: "", src: "assets/bgm_title_5th.mp3", loopStart: 0, volume: 0.4, cover: "assets/bgm_title_5th.jpeg",
-    unlock: (p) => p.clearCount >= 5 },
+    unlock: (p) => p.clearCount >= 6 },   // fifth テーマと同じ回数
   { id: "title_true",     name: "SAME SKY, SOMEDAY　いつか、同じ空の下で", author: "", src: "assets/bgm_title_true_cleared_ending.mp3", loopStart: 0, volume: 0.4, cover:  "assets/bgm_title_true_cleared_ending.jpeg",
     unlock: (p) => p.trueEndSeen === true },
 
@@ -4136,7 +4136,10 @@ function restartFromTitle() {
   clearTimeout(state.timeupTimer);
   clearTimeout(state.glowTimer);
   clearTimeout(state.penaltyTimer);
+  clearTimeout(state.imeTimer);     // タイトルに戻ってから警告が出ないように
+  state.imeTimer = null;
   clearFinalTimers();
+  clearHeartEffects();              // ハートを消しかけたまま抜けたときの予約も捨てる
 
   state.order = [];
   state.stageIndex = 0;
@@ -4165,6 +4168,7 @@ function restartFromTitle() {
   document.getElementById("glow").classList.remove("on");
   document.getElementById("hud-time").classList.remove("penalty");
   document.getElementById("game-footer").classList.remove("urgent");
+  document.getElementById("ime-warning").hidden = true;   // 出たあとに抜けた場合も伏せ直す
 
   renderBest();
   renderTitleCount();
