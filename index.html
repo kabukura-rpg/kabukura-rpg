@@ -2334,6 +2334,12 @@ const TITLE_THEMES = [
     condition: (p) => p.clearCount >= 3,   // 2周目をクリアしたら
   },
   {
+    id: "cleared",
+    bg:  "assets/title_bg_cleared.jpeg",
+    bgm: { src: "assets/bgm_title_cleared.mp3", loopStart: 0, volume: 0.4 },
+    condition: (p) => p.clearCount >= 1,   // 1周目をクリアしたら
+  },
+  {
     id: "normal",
     bg:  "assets/title_bg.jpeg",
     bgm: { src: "assets/bgm_title.mp3", loopStart: 0, volume: 0.4 },
