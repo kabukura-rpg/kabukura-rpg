@@ -1281,6 +1281,28 @@
   .gallery-thumb.clickable { cursor: pointer; }
   .gallery-thumb.clickable:hover { filter: brightness(1.15); }
 
+  /* 「その他」タブの絵柄。ふだんは暗く落としておき、ホバーで明るくする。 */
+  .scenario-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.40);
+    transition: filter 0.2s ease;
+    pointer-events: none;        /* クリック判定を奪わない */
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .gallery-thumb:hover > .scenario-bg { filter: brightness(1); }
+  }
+
+  /* 絵の上に載せる記号（▶／❖）。位置指定なしだと絵に隠れてしまう。 */
+  .thumb-mark {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+  }
+
   /* 「準備中」は絵柄ではなく注記なので小さく出す */
   .gallery-thumb.note {
     font-size: 14px;
@@ -2639,8 +2661,21 @@ const ARTBOOK_PRELOAD = 1;
  */
 const LOCKED_IMAGE = "assets/locked.jpeg";
 
-/** 「その他」タブ（設定資料集・プロローグ・エピローグ）のホバー画像 */
+/** 「その他」タブ（設定資料集・プロローグ・エピローグ）の未解禁ホバー画像 */
 const LOCKED_IMAGE_STORY = "assets/locked_story.jpg";
+
+/**
+ * 「その他」タブの、解禁したあとに枠へ敷く絵。キーは枠のID。
+ * ふだんは暗く落として出し、ホバーで明るくする（イラストタブと同じ見せ方）。
+ * null にする、またはファイルが無い場合は絵を出さず元の見た目のまま。
+ * ※ 画面上の表示名とIDが一対一でない点に注意（下のコメントが表示名）。
+ */
+const OTHER_HOVER = {
+  artbook:  "assets/artbook/00.jpeg",              // 設定資料集
+  prologue: "assets/title_bg.jpeg",                // プロローグ
+  epilogue: "assets/bg_takara.jpg",                // エンディング
+  trueend:  "assets/title_bg_true_cleared.jpeg",   // エピローグ
+};
 
 /** レア枠。通常10枚をすべて集めたクリアで必ず出る。 */
 const REWARD_FINAL = { id: "all", src: "assets/micchanNempanPonkotsuNimushi.jpeg", name: "4人集合",
@@ -4897,6 +4932,31 @@ function attachLockedHover(el, src) {
 }
 
 /**
+ * 「その他」タブの枠に、解禁後の絵と記号を入れる。
+ * 絵はふだん暗く、ホバーで明るくなる（CSS の .scenario-bg）。
+ * 絵が無い／読み込めない場合は記号だけの元の見た目に戻す。
+ */
+function fillScenarioThumb(thumb, src, mark) {
+  thumb.textContent = "";
+
+  if (src) {
+    const img = document.createElement("img");
+    img.className = "scenario-bg";
+    img.alt = "";
+    img.addEventListener("error", () => {
+      if (img.parentNode) img.parentNode.removeChild(img);
+    });
+    img.src = src;
+    thumb.appendChild(img);
+  }
+
+  const sign = document.createElement("span");
+  sign.className = "thumb-mark";
+  sign.textContent = mark;
+  thumb.appendChild(sign);
+}
+
+/**
  * 11枚ぶんのカードを作る。獲得済みはサムネイル、未獲得は「？」。
  * 画像が無い（src が null／読み込めない）ものは「準備中」にして拡大もさせない。
  */
@@ -5021,7 +5081,7 @@ function createArtbookTile() {
     thumb.textContent = "準備中";
     thumb.classList.add("note");
   } else {
-    thumb.textContent = "❖";
+    fillScenarioThumb(thumb, OTHER_HOVER.artbook || null, "❖");
     thumb.classList.add("clickable");
     thumb.addEventListener("click", openArtbook);
   }
@@ -5172,7 +5232,7 @@ function createScenarioTile(sc) {
     thumb.textContent = "準備中";
     thumb.classList.add("note");
   } else {
-    thumb.textContent = "▶";
+    fillScenarioThumb(thumb, OTHER_HOVER[sc.id] || null, "▶");
     thumb.classList.add("clickable");
     thumb.addEventListener("click", () => playScenarioFromGallery(sc));
   }
