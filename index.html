@@ -6341,6 +6341,18 @@ function renderSpell() {
   document.getElementById("spell-ja").textContent = "（" + state.spell.ja + "）";
 }
 
+/**
+ * スペースキーか。iPadOS Safari は Shift なしのスペースで e.key に
+ * " " 以外（"Spacebar" や "Unidentified"）を返すことがあるため、
+ * code と keyCode でも受ける。keyCode は非推奨だが最後の砦として残す。
+ */
+function isSpaceKey(e) {
+  return e.key === " "
+      || e.key === "Spacebar"      // 古い仕様の名前
+      || e.code === "Space"        // 物理キーの位置
+      || e.keyCode === 32;         // それでも取れないときの保険
+}
+
 /** 1打鍵の判定 */
 function handleTyping(key) {
   noteValidKey();   // 正誤に関わらず「打てている」証拠になる
@@ -6488,9 +6500,21 @@ document.addEventListener("keydown", (e) => {
   }
 
   if (currentScreen === "game") {
+    // IME変換中のキーは打鍵にしない。変換確定のスペースは e.code が "Space" なので、
+    // 下のスペース判定より先に外しておく（従来は length !== 1 で弾かれていた）。
+    if (e.isComposing || e.key === "Process") return;
+
+    // スペースだけは長さの判定より先に見る。iPadOS Safari が返す
+    // "Spacebar" や "Unidentified" は length !== 1 で弾かれてしまい、
+    // Shift なしのスペースがミス扱いになるため。
+    if (isSpaceKey(e)) {
+      e.preventDefault();                    // ページのスクロールを止める
+      handleTyping(" ");
+      return;
+    }
+
     // 修飾キー単体・矢印・Tab・Esc・F キー・IME の Process はここで弾かれる
     if (e.key.length !== 1) return;
-    if (e.key === " ") e.preventDefault();   // スクロール抑止
     handleTyping(e.key);
   }
 
